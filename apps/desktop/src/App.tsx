@@ -7,6 +7,8 @@ import { findActionsByCharacterId } from "@/repository/actionRepository";
 import SetupPage from "@/pages/Setup";
 import MainPage from "@/pages/Main";
 import SettingsPage from "@/pages/Settings";
+import ActionPanelPage from "@/pages/ActionPanel";
+import ActionFormPage from "@/pages/ActionForm";
 
 export default function App() {
   const currentPage = useAppStore((s) => s.currentPage);
@@ -39,6 +41,8 @@ export default function App() {
       {currentPage === "setup" && <SetupPage />}
       {currentPage === "main" && <MainPage />}
       {currentPage === "settings" && <SettingsPage />}
+      {currentPage === "action-panel" && <ActionPanelPage />}
+      {currentPage === "action-form" && <ActionFormPage />}
     </div>
   );
 }
