@@ -11,6 +11,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::set_always_on_top,
             commands::save_window_position,
+            commands::resize_window,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]

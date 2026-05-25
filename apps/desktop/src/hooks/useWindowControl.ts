@@ -1,6 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store/appStore";
 
+export const WIDGET_SIZE = { width: 200, height: 280 } as const;
+export const PANEL_SIZE = { width: 360, height: 560 } as const;
+
 export function useWindowControl() {
   const setAlwaysOnTop = useAppStore((s) => s.setAlwaysOnTop);
 
@@ -18,5 +21,9 @@ export function useWindowControl() {
     return invoke<[number, number]>("save_window_position");
   }
 
-  return { enableAlwaysOnTop, disableAlwaysOnTop, savePosition };
+  async function resizeWindow(width: number, height: number) {
+    await invoke("resize_window", { width, height });
+  }
+
+  return { enableAlwaysOnTop, disableAlwaysOnTop, savePosition, resizeWindow };
 }
