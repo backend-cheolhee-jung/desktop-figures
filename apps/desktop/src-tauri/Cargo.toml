@@ -1,19 +1,19 @@
 [package]
-name = "desktop-figures"
+name = "chericon"
 version = "0.1.0"
-description = "Desktop Figures - AI companion app"
+description = "Chericon - AI desktop companion"
 authors = []
 edition = "2021"
 
 [lib]
-name = "desktop_figures_lib"
+name = "chericon_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["macos-private-api", "tray-icon"] }
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-shell = { version = "2" }
 tauri-plugin-fs = { version = "2" }

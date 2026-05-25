@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Desktop Figures",
+  "productName": "Chericon",
   "version": "0.1.0",
-  "identifier": "com.desktop.figures",
+  "identifier": "com.chericon.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Desktop Figures",
+        "title": "Chericon",
         "width": 400,
         "height": 600,
         "minWidth": 200,
@@ -30,6 +30,7 @@
       "id": "main",
       "iconPath": "icons/32x32.png"
     },
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }
