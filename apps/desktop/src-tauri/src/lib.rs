@@ -12,6 +12,8 @@ pub fn run() {
             commands::set_always_on_top,
             commands::save_window_position,
             commands::resize_window,
+            commands::generate_image,
+            commands::read_image_as_data_url,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]

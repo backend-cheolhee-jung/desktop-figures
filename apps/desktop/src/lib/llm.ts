@@ -1,100 +1,63 @@
-// Vertex AI Imagen 요청 래퍼
-// 호출 케이스: 캐릭터 등록, 행동 등록 2가지만 존재
+import { invoke } from "@tauri-apps/api/core";
 
 export interface CharacterImages {
-  baseImage: string;   // base64 PNG
-  sleepImage: string;  // base64 PNG
+  baseImage: string;
+  sleepImage: string;
 }
 
 function getConfig() {
   return {
-    token: import.meta.env.VITE_VERTEX_AI_TOKEN,
-    projectId: import.meta.env.VITE_VERTEX_PROJECT_ID,
-    location: import.meta.env.VITE_VERTEX_LOCATION ?? "us-central1",
+    token: import.meta.env.VITE_VERTEX_AI_TOKEN as string,
+    projectId: import.meta.env.VITE_VERTEX_PROJECT_ID as string,
+    location: (import.meta.env.VITE_VERTEX_LOCATION ?? "us-central1") as string,
   };
 }
 
-async function callImagen(
-  prompt: string,
-  referenceImageBase64?: string
-): Promise<string> {
+async function callImagen(prompt: string): Promise<string> {
   const { token, projectId, location } = getConfig();
-
-  const url =
-    `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}` +
-    `/locations/${location}/publishers/google/models/imagegeneration@006:predict`;
-
-  const instance: Record<string, unknown> = { prompt };
-  if (referenceImageBase64) {
-    instance.image = { bytesBase64Encoded: referenceImageBase64 };
-    instance.editMode = "edit";
-  }
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      instances: [instance],
-      parameters: {
-        sampleCount: 1,
-        aspectRatio: "1:1",
-        outputMimeType: "image/png",
-        includeSafetyAttributes: false,
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const msg = await res.text();
-    throw new Error(`Vertex AI error ${res.status}: ${msg}`);
-  }
-
-  const data = await res.json();
-  return data.predictions[0].bytesBase64Encoded as string;
+  return invoke<string>("generate_image", { token, projectId, location, prompt });
 }
 
-// 케이스 1: 캐릭터 등록
-// - sourceImageBase64: 선택값 (드래그 앤 드롭 시 전달)
-// - description: 선택값 (텍스트 입력 시 전달). 둘 중 하나는 필수.
-// 기본 포즈 + 수면 포즈 2장 동시 생성
-export async function generateCharacterImages(
-  sourceImageBase64?: string,
-  description?: string
-): Promise<CharacterImages> {
-  if (!sourceImageBase64 && !description) {
-    throw new Error("이미지 또는 텍스트 설명 중 하나는 필요합니다.");
-  }
+// 캐릭터 이미지용 스타일 — 배경을 완전히 배제하고 캐릭터에만 집중
+const CHAR_STYLE_SUFFIX = [
+  "3D rendered character",
+  "chubby adorable Pixar-style figurine",
+  "smooth clay-like surface with subsurface scattering",
+  "big round eyes, expressive face",
+  "soft warm studio lighting, three-point light setup",
+  "completely isolated on pure white background",
+  "no ground shadow, no floor, no environment, no props, no scene elements",
+  "full body shot, centered in frame",
+  "front-facing camera, slightly low angle",
+  "high resolution, ultra detailed, sharp edges",
+  "product photography style render",
+  "white seamless studio backdrop",
+].join(", ");
 
-  const base =
-    description
-      ? `${description}, `
-      : "";
+// 행동 이미지용 스타일
+const ACTION_STYLE_SUFFIX = [
+  "3D rendered character",
+  "chubby adorable Pixar-style figurine",
+  "smooth clay-like surface",
+  "big expressive eyes",
+  "soft studio lighting",
+  "pure white background, no environment, no scene, no props",
+  "full body, centered, front-facing",
+  "high quality 3D render",
+  "product shot style",
+].join(", ");
 
-  const styleNote =
-    "귀엽고 통통한 3D 클레이 스타일 캐릭터. 배경 없음, 투명 배경, PNG.";
+export async function generateCharacterImages(description: string): Promise<CharacterImages> {
+  const basePrompt = `${description}. ${CHAR_STYLE_SUFFIX}. Standing upright, arms relaxed at sides, neutral pose, facing camera directly.`;
+  const sleepPrompt = `${description}. ${CHAR_STYLE_SUFFIX}. Eyes closed, sleeping peacefully, lying on side in a cozy curled-up pose, tiny smile.`;
 
-  const basePrompt = `${base}${styleNote} 정면에서 바라보는 포즈.`;
-  const sleepPrompt = `${base}${styleNote} 눈을 감고 편안하게 자고 있는 포즈.`;
-
-  const [baseImage, sleepImage] = await Promise.all([
-    callImagen(basePrompt, sourceImageBase64),
-    callImagen(sleepPrompt, sourceImageBase64),
-  ]);
+  const baseImage = await callImagen(basePrompt);
+  const sleepImage = await callImagen(sleepPrompt);
 
   return { baseImage, sleepImage };
 }
 
-// 케이스 2: 행동 등록
-export async function generateActionImage(
-  baseCharacterBase64: string,
-  actionName: string
-): Promise<string> {
-  const prompt =
-    `이 캐릭터가 ${actionName}을(를) 하고 있는 모습. ` +
-    "배경 없음, 투명 배경, PNG. 귀엽고 통통한 3D 클레이 스타일 유지.";
-
-  return callImagen(prompt, baseCharacterBase64);
+export async function generateActionImage(characterDescription: string, actionName: string): Promise<string> {
+  const prompt = `${characterDescription}. ${ACTION_STYLE_SUFFIX}. The character is actively doing "${actionName}", dynamic expressive pose, full body visible.`;
+  return callImagen(prompt);
 }

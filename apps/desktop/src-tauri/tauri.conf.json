@@ -32,7 +32,7 @@
     },
     "macOSPrivateApi": true,
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://unpkg.com https://*.huggingface.co https://huggingface.co https://cdn.jsdelivr.net; script-src 'self' 'unsafe-eval' 'unsafe-inline'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
