@@ -8,6 +8,13 @@
     "core:default",
     "shell:allow-open",
     "fs:default",
-    "sql:default"
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-appdata-meta-recursive",
+    "sql:default",
+    "sql:allow-load",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-close"
   ]
 }

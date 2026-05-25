@@ -32,7 +32,7 @@ export default function ActionFormPage() {
       if (!action) return;
       setActionName(action.name);
       setActionImagePath(action.actionImagePath);
-      setPreviewUrl(toDisplayUrl(action.actionImagePath));
+      setPreviewUrl(await toDisplayUrl(action.actionImagePath));
       setSpeechBubble(action.speechBubble ?? "");
       setSavedId(action.id);
       if (action.scheduledAt) {
@@ -51,18 +51,13 @@ export default function ActionFormPage() {
     setStep("generating");
     setError(null);
     try {
-      // 기본 캐릭터 이미지를 base64로 읽어서 Vertex AI 전달
-      const { readFile, BaseDirectory } = await import("@tauri-apps/plugin-fs");
-      const bytes = await readFile(character.baseImagePath, { baseDir: BaseDirectory.AppData });
-      const base64 = btoa(String.fromCharCode(...bytes));
-
-      const imageBase64 = await generateActionImage(base64, actionName.trim());
+      const imageBase64 = await generateActionImage(character.name, actionName.trim());
 
       const id = savedId ?? crypto.randomUUID();
       const path = await saveBase64Image(imageBase64, `actions/${id}`, "action.png");
 
       setActionImagePath(path);
-      setPreviewUrl(toDisplayUrl(path));
+      setPreviewUrl(await toDisplayUrl(path));
       setSavedId(id);
       setStep("detail");
     } catch (e) {
