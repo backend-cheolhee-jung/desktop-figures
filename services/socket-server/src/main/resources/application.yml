@@ -1,0 +1,10 @@
+ktor:
+  deployment:
+    port: 9090
+
+# 민감값은 환경변수로 주입 (프로덕션: AWS Secrets Manager)
+# 로컬 개발: .env 파일 사용 (gitignored)
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: desktop-figures
+  audience: desktop-figures-users

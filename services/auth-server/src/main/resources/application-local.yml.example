@@ -1,0 +1,13 @@
+# application-local.yml 예시 파일 (gitignored 원본의 템플릿)
+# 복사 후 이름을 application-local.yml 로 변경하여 사용
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/desktop_figures
+    username: your_db_username
+    password: your_db_password
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+jwt:
+  secret: your-local-jwt-secret-minimum-32-characters
