@@ -33,6 +33,9 @@ dependencies {
     // Database
     runtimeOnly("org.postgresql:postgresql")
 
+    // Jasypt: yml 내 민감값 암호화 ENC(...)
+    implementation("com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
 }

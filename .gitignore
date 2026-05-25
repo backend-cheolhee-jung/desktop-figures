@@ -52,6 +52,9 @@ dist/
 .env.*
 !.env.example
 
+### Local Spring profiles (평문 민감값 포함) ###
+application-local.yml
+
 ### Rust / Tauri ###
 target/
 apps/desktop/src-tauri/target/
