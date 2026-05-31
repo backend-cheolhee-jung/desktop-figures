@@ -5,6 +5,8 @@ import { useActionStore } from "@/store/actionStore";
 import { createAnimation, actionPromptFor } from "@/lib/meshy";
 import { saveAction, findActionById, updateSpeechBubble, updateActionSchedule } from "@/repository/actionRepository";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import AuthModal from "@/components/AuthModal";
+import { useGenerationGate } from "@/hooks/useGenerationGate";
 
 type Step = "name" | "generating" | "detail";
 
@@ -12,6 +14,7 @@ export default function ActionFormPage() {
   const { editingActionId, setPage } = useAppStore();
   const character = useCharacterStore((s) => s.character);
   const { actions, addAction, setActions } = useActionStore();
+  const { showModal, setShowModal, runGated } = useGenerationGate();
 
   const [step, setStep] = useState<Step>("name");
   const [actionName, setActionName] = useState("");
@@ -142,7 +145,7 @@ export default function ActionFormPage() {
             />
             {!isEdit && (
               <button
-                onClick={handleStartGeneration}
+                onClick={() => runGated(handleStartGeneration)}
                 disabled={!actionName.trim() || !character || step === "generating"}
                 className="px-3 py-2 bg-blue-500 text-white text-xs rounded-xl disabled:opacity-40 hover:bg-blue-600 shrink-0"
               >
@@ -212,6 +215,13 @@ export default function ActionFormPage() {
             저장
           </button>
         </div>
+      )}
+
+      {showModal && (
+        <AuthModal
+          onClose={() => setShowModal(false)}
+          onApproved={() => { setShowModal(false); handleStartGeneration(); }}
+        />
       )}
     </div>
   );
