@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
-import { generateActionImage } from "@/lib/llm";
-import { saveBase64Image, toDisplayUrl } from "@/lib/imageUtils";
+import { createAnimation, actionPromptFor } from "@/lib/meshy";
 import { saveAction, findActionById, updateSpeechBubble, updateActionSchedule } from "@/repository/actionRepository";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
@@ -16,13 +15,11 @@ export default function ActionFormPage() {
 
   const [step, setStep] = useState<Step>("name");
   const [actionName, setActionName] = useState("");
-  const [actionImagePath, setActionImagePath] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [speechBubble, setSpeechBubble] = useState("");
   const [scheduledTime, setScheduledTime] = useState(""); // "HH:MM"
   const [durationMinutes, setDurationMinutes] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [savedId, setSavedId] = useState<string | null>(null);
 
   // 수정 모드: 기존 행동 로드
   useEffect(() => {
@@ -31,10 +28,7 @@ export default function ActionFormPage() {
       const action = await findActionById(editingActionId);
       if (!action) return;
       setActionName(action.name);
-      setActionImagePath(action.actionImagePath);
-      setPreviewUrl(await toDisplayUrl(action.actionImagePath));
       setSpeechBubble(action.speechBubble ?? "");
-      setSavedId(action.id);
       if (action.scheduledAt) {
         const d = new Date(action.scheduledAt);
         setScheduledTime(
@@ -46,28 +40,29 @@ export default function ActionFormPage() {
     })();
   }, [editingActionId]);
 
-  async function handleGenerateImage() {
+  async function handleStartGeneration() {
     if (!actionName.trim() || !character) return;
+    if (!character.modelRemoteUrl) {
+      setError("캐릭터 3D 모델이 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
     setStep("generating");
     setError(null);
     try {
-      const imageBase64 = await generateActionImage(character.name, actionName.trim());
-
-      const id = savedId ?? crypto.randomUUID();
-      const path = await saveBase64Image(imageBase64, `actions/${id}`, "action.png");
-
-      setActionImagePath(path);
-      setPreviewUrl(await toDisplayUrl(path));
-      setSavedId(id);
+      const taskId = await createAnimation(
+        character.modelRemoteUrl,
+        actionPromptFor(actionName.trim())
+      );
+      setPendingTaskId(taskId);
       setStep("detail");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "이미지 생성 실패");
+      setError(e instanceof Error ? e.message : "애니메이션 생성 요청 실패");
       setStep("name");
     }
   }
 
   async function handleSave() {
-    if (!actionImagePath || !actionName.trim()) return;
+    if (!actionName.trim()) return;
     setError(null);
 
     let scheduledAt: number | undefined;
@@ -95,10 +90,15 @@ export default function ActionFormPage() {
         );
       } else {
         // 신규
+        if (!pendingTaskId) {
+          setError("먼저 행동 애니메이션 생성을 시작해 주세요.");
+          return;
+        }
         const action = await saveAction({
           characterId: character!.id,
           name: actionName.trim(),
-          actionImagePath,
+          generationStatus: "pending",
+          meshyTaskId: pendingTaskId,
           speechBubble: speechBubble || undefined,
           scheduledAt,
           durationMinutes: duration,
@@ -115,7 +115,7 @@ export default function ActionFormPage() {
 
   return (
     <div className="relative flex flex-col h-full">
-      {step === "generating" && <LoadingOverlay message="행동 이미지 생성 중..." />}
+      {step === "generating" && <LoadingOverlay message="3D 애니메이션 생성 요청 중..." />}
 
       {/* 헤더 */}
       <div className="flex items-center gap-2 px-4 pt-4 pb-3">
@@ -142,7 +142,7 @@ export default function ActionFormPage() {
             />
             {!isEdit && (
               <button
-                onClick={handleGenerateImage}
+                onClick={handleStartGeneration}
                 disabled={!actionName.trim() || !character || step === "generating"}
                 className="px-3 py-2 bg-blue-500 text-white text-xs rounded-xl disabled:opacity-40 hover:bg-blue-600 shrink-0"
               >
@@ -152,14 +152,12 @@ export default function ActionFormPage() {
           </div>
         </div>
 
-        {/* 생성된 이미지 미리보기 */}
-        {previewUrl && (
+        {/* 3D 애니메이션 생성 안내 */}
+        {step === "detail" && !editingActionId && (
           <div className="flex justify-center">
-            <img
-              src={previewUrl}
-              alt="action preview"
-              className="w-24 h-24 object-contain rounded-2xl bg-gray-50 border border-gray-100"
-            />
+            <span className="text-xs text-blue-400 bg-blue-50 rounded-full px-3 py-1">
+              🧊 3D 애니메이션 생성 중 · 잠시 후 캐릭터에 반영돼요
+            </span>
           </div>
         )}
 
