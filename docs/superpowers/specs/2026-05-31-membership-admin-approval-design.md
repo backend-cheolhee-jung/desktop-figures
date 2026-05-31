@@ -84,7 +84,10 @@ CREATE TABLE admin_users (
 );
 ```
 
-- 스키마 생성: 단순화를 위해 `schema.sql`(admin-server, JDBC) 또는 auth-server JPA `ddl-auto`로 관리. 두 서버가 같은 DB를 보므로 **테이블 생성 책임을 명확히 분리**한다 — `users`는 auth-server, `admin_users`는 admin-server.
+- **스키마 생성 책임 (중요):** 현재 `auth-server`의 `application.yml`은 `ddl-auto: validate`라 JPA가 테이블을 **생성하지 않는다**(존재 검증만). 따라서 스키마는 명시적 SQL로 만든다:
+  - 개발 환경: 각 서버 리소스에 `schema.sql`을 두고 부트 시 실행(Spring `sql.init`). `users`는 auth-server `schema.sql`, `admin_users`는 admin-server `schema.sql`이 생성.
+  - 두 서버가 같은 DB를 보므로 **테이블 생성 책임을 분리**한다 — `users`는 auth-server, `admin_users`는 admin-server. (admin-server는 `users`를 생성하지 않고 조회/갱신만.)
+  - 운영 환경: Flyway 등 마이그레이션 도구 도입(인프라 단계 TODO). 이번 범위는 `schema.sql` 수준.
 - 운영자 시드: admin-server 부트스트랩 시 `ADMIN_SEED_USERNAME` / `ADMIN_SEED_PASSWORD` 환경변수가 있으면 `admin_users`에 없을 때 1명 생성(bcrypt 해싱).
 
 ### 상태 머신 (users.status)
