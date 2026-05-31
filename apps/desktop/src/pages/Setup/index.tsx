@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
-import { useDragDrop } from "@/hooks/useDragDrop";
-import { createTextModel, createImageModel } from "@/lib/meshy";
+import { createTextModel } from "@/lib/meshy";
 import { saveCharacter } from "@/repository/characterRepository";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
@@ -30,19 +29,11 @@ export default function SetupPage() {
     try {
       setLoadingMsg("AI에게 3D 캐릭터 생성을 요청하는 중...");
 
-      let taskId: string;
-      let taskType: "text" | "image";
-      if (base64) {
-        taskId = await createImageModel(`data:image/png;base64,${base64}`);
-        taskType = "image";
-      } else {
-        taskId = await createTextModel(description.trim());
-        taskType = "text";
-      }
+      const taskId = await createTextModel(description.trim());
 
       const character = await saveCharacter({
         name: characterName.trim(),
-        modelTaskType: taskType,
+        modelTaskType: "text",
         generationStatus: "pending",
         meshyTaskId: taskId,
       });
@@ -64,10 +55,11 @@ export default function SetupPage() {
         나만의 캐릭터 만들기
       </h1>
 
+      {/* 텍스트 설명 입력 */}
       <div className="flex flex-col gap-1">
         <label className="text-xs text-gray-500 font-medium">
           캐릭터 설명 <span className="text-red-400">*</span>
-          <span className="text-gray-400 font-normal ml-1">(구체적일수록 더 좋아요)</span>
+          <span className="text-gray-400 font-normal ml-1">(구체적일수록 더 좋은 캐릭터가 나와요)</span>
         </label>
         <textarea
           value={description}

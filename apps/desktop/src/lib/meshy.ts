@@ -35,23 +35,7 @@ export async function createTextModel(prompt: string): Promise<string> {
   return data.result as string;
 }
 
-// 케이스 2: 이미지로 캐릭터 모델 생성
-// imageDataUrl: "data:image/png;base64,..." 형식
-export async function createImageModel(imageDataUrl: string): Promise<string> {
-  const res = await fetch(`${BASE}/v1/image-to-3d`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({
-      image_url: imageDataUrl,
-      should_remesh: true,
-    }),
-  });
-  if (!res.ok) throw new Error(`Meshy image-to-3d ${res.status}: ${await res.text()}`);
-  const data = await res.json();
-  return data.result as string;
-}
-
-// 케이스 3: 애니메이션 생성 (모델 URL + 동작 설명)
+// 케이스 2: 애니메이션 생성 (모델 URL + 동작 설명)
 export async function createAnimation(
   modelUrl: string,
   actionPrompt: string
