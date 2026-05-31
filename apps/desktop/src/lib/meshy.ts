@@ -26,7 +26,7 @@ export async function createTextModel(prompt: string): Promise<string> {
     body: JSON.stringify({
       mode: "preview",
       prompt: `${prompt}, cute chubby 3D clay style character, full body`,
-      art_style: "sculpture",
+      art_style: "realistic",
       should_remesh: true,
     }),
   });
