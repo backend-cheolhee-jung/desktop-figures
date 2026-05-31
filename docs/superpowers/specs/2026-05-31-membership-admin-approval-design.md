@@ -84,10 +84,13 @@ CREATE TABLE admin_users (
 );
 ```
 
-- **스키마 생성 책임 (중요):** 현재 `auth-server`의 `application.yml`은 `ddl-auto: validate`라 JPA가 테이블을 **생성하지 않는다**(존재 검증만). 따라서 스키마는 명시적 SQL로 만든다:
-  - 개발 환경: 각 서버 리소스에 `schema.sql`을 두고 부트 시 실행(Spring `sql.init`). `users`는 auth-server `schema.sql`, `admin_users`는 admin-server `schema.sql`이 생성.
-  - 두 서버가 같은 DB를 보므로 **테이블 생성 책임을 분리**한다 — `users`는 auth-server, `admin_users`는 admin-server. (admin-server는 `users`를 생성하지 않고 조회/갱신만.)
-  - 운영 환경: Flyway 등 마이그레이션 도구 도입(인프라 단계 TODO). 이번 범위는 `schema.sql` 수준.
+- **스키마 관리 = Flyway (모든 환경):** `auth-server`의 `ddl-auto: validate`는 유지하고(JPA는 검증만), 실제 테이블 생성/변경은 **Flyway 마이그레이션**으로 관리한다.
+  - 두 서버가 같은 DB를 공유하므로 **마이그레이션 소유권을 분리**한다 — `users` 관련 마이그레이션은 `auth-server`가, `admin_users`는 `admin-server`가 소유. admin-server는 `users`를 생성하지 않고 조회/갱신만 한다.
+  - 마이그레이션 충돌 방지: 각 서버는 **자체 Flyway 히스토리 테이블**을 사용한다(예: `flyway_schema_history_auth`, `flyway_schema_history_admin`)을 `flyway.table`로 분리 지정. 같은 DB에 두 개의 독립 마이그레이션 라인을 둔다.
+  - 마이그레이션 파일 위치: `src/main/resources/db/migration/V1__*.sql` 형식.
+    - auth-server: `V1__create_users.sql` (users + status/reject_reason 포함)
+    - admin-server: `V1__create_admin_users.sql`
+  - 의존성: 두 서버 `build.gradle.kts`에 `org.flywaydb:flyway-core`(+ PostgreSQL은 `flyway-database-postgresql`) 추가.
 - 운영자 시드: admin-server 부트스트랩 시 `ADMIN_SEED_USERNAME` / `ADMIN_SEED_PASSWORD` 환경변수가 있으면 `admin_users`에 없을 때 1명 생성(bcrypt 해싱).
 
 ### 상태 머신 (users.status)
@@ -193,5 +196,5 @@ JASYPT_ENCRYPTOR_PASSWORD=...
 | `services/admin-server` | **신규 모듈** (Spring Boot + JDBC template), admin 인증, 승인/거절 API, 웹 UI 1장, 시드 |
 | `settings.gradle.kts` | `services:admin-server` 모듈 추가 |
 | `apps/desktop` | authStore, authApi, 로그인/가입 모달, Setup/ActionForm 게이트 |
-| 데이터베이스 | `users`에 `status`/`reject_reason`, `admin_users` 신규 |
+| 데이터베이스 | **Flyway 마이그레이션**으로 관리. auth: `users`(status/reject_reason 포함), admin: `admin_users`. 서버별 분리된 Flyway 히스토리 테이블 |
 | Meshy | **변경 없음** (클라이언트 직접 유지, 서버 프록시는 TODO) |
