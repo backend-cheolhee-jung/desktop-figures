@@ -11,7 +11,7 @@ export default function MainPage() {
   const character = useCharacterStore((s) => s.character);
   const { status, currentAction, stopAction } = useActionStore();
   const { setPage } = useAppStore();
-  const { disableAlwaysOnTop } = useWindowControl();
+  const { disableAlwaysOnTop, quitApp } = useWindowControl();
 
   useScheduler();
   useJobPoller();
@@ -38,6 +38,13 @@ export default function MainPage() {
           title="설정"
         >
           ⚙️
+        </button>
+        <button
+          onClick={quitApp}
+          className="text-gray-400 hover:text-red-400 text-base font-medium"
+          title="종료"
+        >
+          ✕
         </button>
       </div>
 
