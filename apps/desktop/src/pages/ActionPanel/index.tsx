@@ -1,7 +1,6 @@
 import { useActionStore } from "@/store/actionStore";
 import { useAppStore } from "@/store/appStore";
 import { deleteAction } from "@/repository/actionRepository";
-import { toDisplayUrl } from "@/lib/imageUtils";
 
 export default function ActionPanelPage() {
   const { actions, setActions } = useActionStore();
@@ -55,12 +54,14 @@ export default function ActionPanelPage() {
               key={action.id}
               className="flex items-center gap-3 bg-gray-50 rounded-2xl px-3 py-2.5"
             >
-              {/* 행동 이미지 */}
-              <img
-                src={toDisplayUrl(action.actionImagePath)}
-                alt={action.name}
-                className="w-10 h-10 object-contain rounded-xl bg-white"
-              />
+              {/* 상태 아이콘 */}
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-lg shrink-0">
+                {action.generationStatus === "ready"
+                  ? "🧊"
+                  : action.generationStatus === "failed"
+                  ? "⚠️"
+                  : "⏳"}
+              </div>
 
               {/* 행동 정보 */}
               <div className="flex-1 min-w-0">
