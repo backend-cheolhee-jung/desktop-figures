@@ -1,6 +1,6 @@
 mod commands;
 
-use tauri::{Manager, WindowEvent};
+use tauri::WindowEvent;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
