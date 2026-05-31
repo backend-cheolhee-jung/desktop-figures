@@ -3,7 +3,8 @@ import { useActionStore } from "@/store/actionStore";
 import { useAppStore } from "@/store/appStore";
 import { useWindowControl } from "@/hooks/useWindowControl";
 import { useScheduler } from "@/hooks/useScheduler";
-import { toDisplayUrl } from "@/lib/imageUtils";
+import { useJobPoller } from "@/hooks/useJobPoller";
+import CharacterViewer from "@/components/CharacterViewer";
 import ActionTimer from "@/components/ActionTimer";
 
 export default function MainPage() {
@@ -13,19 +14,12 @@ export default function MainPage() {
   const { disableAlwaysOnTop } = useWindowControl();
 
   useScheduler();
+  useJobPoller();
 
   async function handleStopAction() {
     await disableAlwaysOnTop();
     stopAction();
   }
-
-  const characterImageSrc = character
-    ? toDisplayUrl(
-        status === "idle"
-          ? character.sleepImagePath
-          : (currentAction?.actionImagePath ?? character.baseImagePath)
-      )
-    : null;
 
   return (
     <div className="relative flex flex-col items-center justify-end h-full pb-4 select-none">
@@ -59,17 +53,13 @@ export default function MainPage() {
         </div>
       )}
 
-      {/* 캐릭터 이미지 */}
+      {/* 캐릭터 3D 뷰어 */}
       <div className="w-32 h-32 flex items-center justify-center">
-        {characterImageSrc ? (
-          <img
-            src={characterImageSrc}
-            alt={character?.name}
-            className={[
-              "w-full h-full object-contain",
-              status === "idle" ? "opacity-80" : "",
-            ].join(" ")}
-            draggable={false}
+        {character ? (
+          <CharacterViewer
+            character={character}
+            currentAction={currentAction}
+            status={status}
           />
         ) : (
           <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center text-3xl">
