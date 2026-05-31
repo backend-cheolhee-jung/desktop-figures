@@ -11,7 +11,7 @@ export default function MainPage() {
   const character = useCharacterStore((s) => s.character);
   const { status, currentAction, stopAction } = useActionStore();
   const { setPage } = useAppStore();
-  const { disableAlwaysOnTop, quitApp } = useWindowControl();
+  const { disableAlwaysOnTop, hideWindow } = useWindowControl();
 
   useScheduler();
   useJobPoller();
@@ -40,9 +40,9 @@ export default function MainPage() {
           ⚙️
         </button>
         <button
-          onClick={quitApp}
+          onClick={hideWindow}
           className="text-gray-400 hover:text-red-400 text-base font-medium"
-          title="종료"
+          title="숨기기"
         >
           ✕
         </button>

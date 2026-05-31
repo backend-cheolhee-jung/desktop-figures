@@ -1,6 +1,6 @@
 mod commands;
 
-use tauri::Manager;
+use tauri::{Manager, WindowEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -16,6 +16,13 @@ pub fn run() {
         ])
         .setup(|_app| {
             Ok(())
+        })
+        // 창 닫기(X 클릭) → 숨기기만, 프로세스 유지
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                window.hide().ok();
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
