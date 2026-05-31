@@ -3,8 +3,7 @@ import { useAppStore } from "@/store/appStore";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import { useDragDrop } from "@/hooks/useDragDrop";
-import { generateCharacterImages } from "@/lib/llm";
-import { saveBase64Image } from "@/lib/imageUtils";
+import { createTextModel, createImageModel } from "@/lib/meshy";
 import { saveCharacter } from "@/repository/characterRepository";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
@@ -32,30 +31,30 @@ export default function SetupPage() {
     setError(null);
 
     try {
-      setLoadingMsg("AI가 캐릭터를 만들고 있어요...");
-      const { baseImage, sleepImage } = await generateCharacterImages(
-        base64 ?? undefined,
-        description.trim() || undefined
-      );
+      setLoadingMsg("AI에게 3D 캐릭터 생성을 요청하는 중...");
 
-      setLoadingMsg("이미지를 저장하는 중...");
-      const id = crypto.randomUUID();
-      const [basePath, sleepPath] = await Promise.all([
-        saveBase64Image(baseImage, `characters/${id}`, "base.png"),
-        saveBase64Image(sleepImage, `characters/${id}`, "sleep.png"),
-      ]);
+      let taskId: string;
+      let taskType: "text" | "image";
+      if (base64) {
+        taskId = await createImageModel(`data:image/png;base64,${base64}`);
+        taskType = "image";
+      } else {
+        taskId = await createTextModel(description.trim());
+        taskType = "text";
+      }
 
       const character = await saveCharacter({
         name: characterName.trim(),
-        baseImagePath: basePath,
-        sleepImagePath: sleepPath,
+        modelTaskType: taskType,
+        generationStatus: "pending",
+        meshyTaskId: taskId,
       });
 
       setCharacter(character);
       setActions([]);
       setPage("main");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "캐릭터 생성에 실패했어요.");
+      setError(e instanceof Error ? e.message : "캐릭터 생성 요청에 실패했어요.");
       setStep("input");
     }
   }
