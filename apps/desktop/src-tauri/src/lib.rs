@@ -14,9 +14,7 @@ pub fn run() {
             commands::quit_app,
             commands::hide_window,
         ])
-        .setup(|app| {
-            #[cfg(debug_assertions)]
-            app.get_webview_window("main").unwrap().open_devtools();
+        .setup(|_app| {
             Ok(())
         })
         .run(tauri::generate_context!())
