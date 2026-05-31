@@ -12,6 +12,11 @@ spring:
       ddl-auto: validate
     show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    table: flyway_schema_history_auth   # admin-server와 분리된 히스토리 테이블
+    locations: classpath:db/migration
+    baseline-on-migrate: true
 
 server:
   port: 8080
