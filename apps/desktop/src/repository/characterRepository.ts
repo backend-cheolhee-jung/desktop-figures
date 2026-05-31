@@ -1,11 +1,18 @@
 import { getDb } from "@/lib/sqlite";
-import { Character } from "@/store/characterStore";
+import { Character, GenerationStatus, ModelTaskType } from "@/store/characterStore";
 
 interface CharacterRow {
   id: string;
   name: string;
-  base_image_path: string;
-  sleep_image_path: string;
+  model_path: string | null;
+  model_remote_url: string | null;
+  model_task_type: string;
+  idle_anim_path: string | null;
+  sleep_anim_path: string | null;
+  generation_status: string;
+  meshy_task_id: string | null;
+  idle_meshy_task_id: string | null;
+  sleep_meshy_task_id: string | null;
   server_id: string | null;
   created_at: number;
   updated_at: number;
@@ -16,8 +23,15 @@ function toCharacter(row: CharacterRow): Character {
   return {
     id: row.id,
     name: row.name,
-    baseImagePath: row.base_image_path,
-    sleepImagePath: row.sleep_image_path,
+    modelPath: row.model_path ?? undefined,
+    modelRemoteUrl: row.model_remote_url ?? undefined,
+    modelTaskType: row.model_task_type as ModelTaskType,
+    idleAnimPath: row.idle_anim_path ?? undefined,
+    sleepAnimPath: row.sleep_anim_path ?? undefined,
+    generationStatus: row.generation_status as GenerationStatus,
+    meshyTaskId: row.meshy_task_id ?? undefined,
+    idleMeshyTaskId: row.idle_meshy_task_id ?? undefined,
+    sleepMeshyTaskId: row.sleep_meshy_task_id ?? undefined,
     serverId: row.server_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -34,9 +48,18 @@ export async function saveCharacter(
 
   await db.execute(
     `INSERT INTO characters
-       (id, name, base_image_path, sleep_image_path, server_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, data.name, data.baseImagePath, data.sleepImagePath, data.serverId ?? null, now, now]
+       (id, name, model_path, model_remote_url, model_task_type,
+        idle_anim_path, sleep_anim_path, generation_status,
+        meshy_task_id, idle_meshy_task_id, sleep_meshy_task_id,
+        server_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id, data.name, data.modelPath ?? null, data.modelRemoteUrl ?? null,
+      data.modelTaskType, data.idleAnimPath ?? null, data.sleepAnimPath ?? null,
+      data.generationStatus, data.meshyTaskId ?? null,
+      data.idleMeshyTaskId ?? null, data.sleepMeshyTaskId ?? null,
+      data.serverId ?? null, now, now,
+    ]
   );
 
   return { id, ...data, createdAt: now, updatedAt: now };
@@ -76,4 +99,40 @@ export async function markCharacterSynced(id: string, serverId: string): Promise
 export async function deleteCharacter(id: string): Promise<void> {
   const db = await getDb();
   await db.execute("DELETE FROM characters WHERE id = ?", [id]);
+}
+
+// 폴러: 캐릭터 생성 진행 상태 업데이트
+export async function updateCharacterFields(
+  id: string,
+  fields: Partial<Pick<Character,
+    "modelPath" | "modelRemoteUrl" | "idleAnimPath" | "sleepAnimPath" |
+    "generationStatus" | "idleMeshyTaskId" | "sleepMeshyTaskId">>
+): Promise<void> {
+  const db = await getDb();
+  const map: Record<string, string> = {
+    modelPath: "model_path",
+    modelRemoteUrl: "model_remote_url",
+    idleAnimPath: "idle_anim_path",
+    sleepAnimPath: "sleep_anim_path",
+    generationStatus: "generation_status",
+    idleMeshyTaskId: "idle_meshy_task_id",
+    sleepMeshyTaskId: "sleep_meshy_task_id",
+  };
+  const entries = Object.entries(fields).filter(([, v]) => v !== undefined);
+  if (entries.length === 0) return;
+  const setClause = entries.map(([k]) => `${map[k]} = ?`).join(", ");
+  const values = entries.map(([, v]) => v);
+  await db.execute(
+    `UPDATE characters SET ${setClause}, updated_at = ? WHERE id = ?`,
+    [...values, Date.now(), id]
+  );
+}
+
+// 폴러: 아직 ready/failed가 아닌 캐릭터 조회
+export async function findPendingCharacters(): Promise<Character[]> {
+  const db = await getDb();
+  const rows = await db.select<CharacterRow[]>(
+    "SELECT * FROM characters WHERE generation_status = 'pending'"
+  );
+  return rows.map(toCharacter);
 }
