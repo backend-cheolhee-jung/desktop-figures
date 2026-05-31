@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { GenerationStatus } from "@/store/characterStore";
 
 export type WidgetStatus = "idle" | "active";
 
@@ -6,7 +7,9 @@ export interface Action {
   id: string;
   characterId: string;
   name: string;
-  actionImagePath: string;
+  animationPath?: string;
+  generationStatus: GenerationStatus;
+  meshyTaskId?: string;
   speechBubble?: string;
   voiceFilePath?: string;
   voiceLoopStart?: number;
