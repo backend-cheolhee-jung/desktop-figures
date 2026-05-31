@@ -33,6 +33,10 @@ dependencies {
     // Database
     runtimeOnly("org.postgresql:postgresql")
 
+    // Flyway 마이그레이션
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+
     // Jasypt: yml 내 민감값 암호화 ENC(...)
     implementation("com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5")
 
