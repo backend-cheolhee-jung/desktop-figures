@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>가입 승인 관리</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 16px; color: #333; }
+    h2 { font-size: 18px; margin-bottom: 16px; }
+    .login { display: flex; gap: 8px; align-items: center; }
+    .login input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    button { padding: 8px 14px; background: #3b82f6; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    button:hover { background: #2563eb; }
+    button.danger { background: #ef4444; }
+    button.danger:hover { background: #dc2626; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #e5e7eb; padding: 10px 12px; font-size: 14px; text-align: left; }
+    th { background: #f9fafb; font-weight: 600; }
+    .hidden { display: none; }
+    .actions { display: flex; gap: 6px; }
+    .refresh { margin-top: 12px; background: #6b7280; }
+    .refresh:hover { background: #4b5563; }
+    #error { color: #ef4444; font-size: 13px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h2>가입 승인 관리</h2>
+
+  <div id="loginPanel" class="login">
+    <input id="usernameInput" placeholder="운영자 ID" />
+    <input id="passwordInput" type="password" placeholder="비밀번호" />
+    <button onclick="doLogin()">로그인</button>
+    <span id="error"></span>
+  </div>
+
+  <div id="mainPanel" class="hidden">
+    <button class="refresh" onclick="loadList()">새로고침</button>
+    <table>
+      <thead>
+        <tr><th>이메일</th><th>닉네임</th><th>신청일</th><th>처리</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p id="empty" class="hidden" style="color:#9ca3af;margin-top:12px;">대기 중인 가입 신청이 없습니다.</p>
+  </div>
+
+  <script>
+    let token = "";
+
+    async function doLogin() {
+      const username = document.getElementById("usernameInput").value.trim();
+      const password = document.getElementById("passwordInput").value;
+      document.getElementById("error").textContent = "";
+      try {
+        const res = await fetch("/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        if (!res.ok) { document.getElementById("error").textContent = "로그인 실패"; return; }
+        token = (await res.json()).adminToken;
+        document.getElementById("loginPanel").classList.add("hidden");
+        document.getElementById("mainPanel").classList.remove("hidden");
+        loadList();
+      } catch (e) {
+        document.getElementById("error").textContent = "서버 연결 실패";
+      }
+    }
+
+    async function loadList() {
+      const res = await fetch("/admin/registrations?status=PENDING", {
+        headers: { Authorization: "Bearer " + token },
+      });
+      const list = await res.json();
+      const tbody = document.getElementById("rows");
+      const empty = document.getElementById("empty");
+      if (!Array.isArray(list) || list.length === 0) {
+        tbody.innerHTML = "";
+        empty.classList.remove("hidden");
+        return;
+      }
+      empty.classList.add("hidden");
+      tbody.innerHTML = list.map(function(x) {
+        return `<tr>
+          <td>${x.email}</td>
+          <td>${x.nickname}</td>
+          <td>${x.createdAt}</td>
+          <td class="actions">
+            <button onclick="doApprove('${x.userId}')">승인</button>
+            <button class="danger" onclick="doReject('${x.userId}')">거절</button>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function doApprove(id) {
+      const res = await fetch("/admin/registrations/" + id + "/approve", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+      });
+      if (res.ok) loadList();
+    }
+
+    async function doReject(id) {
+      const reason = prompt("거절 사유를 입력해 주세요");
+      if (!reason) return;
+      const res = await fetch("/admin/registrations/" + id + "/reject", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (res.ok) loadList();
+    }
+  </script>
+</body>
+</html>
