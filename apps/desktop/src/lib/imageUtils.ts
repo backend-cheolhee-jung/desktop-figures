@@ -1,20 +1,8 @@
 import { BaseDirectory, mkdir, writeFile } from "@tauri-apps/plugin-fs";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { appDataDir, join } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 
-// File → base64 (data URL prefix 제거)
-export function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      resolve(result.split(",")[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-// base64 PNG → AppData 디렉토리에 저장 후 로컬 경로 반환
+// base64 PNG → AppData에 저장, 절대 경로 반환
 export async function saveBase64Image(
   base64: string,
   subDir: string,
@@ -27,10 +15,11 @@ export async function saveBase64Image(
 
   await writeFile(relativePath, bytes, { baseDir: BaseDirectory.AppData });
 
-  return relativePath;
+  const dataDir = await appDataDir();
+  return join(dataDir, relativePath);
 }
 
-// 로컬 파일 경로 → webview에서 표시 가능한 URL
-export function toDisplayUrl(relativePath: string): string {
-  return convertFileSrc(relativePath);
+// 절대 경로 → data URL (Rust에서 파일 읽기, convertFileSrc 미사용)
+export async function toDisplayUrl(absolutePath: string): Promise<string> {
+  return invoke<string>("read_image_as_data_url", { path: absolutePath });
 }
