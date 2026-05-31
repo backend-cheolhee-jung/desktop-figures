@@ -24,6 +24,7 @@ async function initSchema(db: Database): Promise<void> {
       meshy_task_id       TEXT,
       idle_meshy_task_id  TEXT,
       sleep_meshy_task_id TEXT,
+      rig_task_id         TEXT,
       server_id           TEXT,
       created_at          INTEGER NOT NULL,
       updated_at          INTEGER NOT NULL,
@@ -89,6 +90,7 @@ async function migrateColumns(db: Database): Promise<void> {
   await ensure("characters", "meshy_task_id", "TEXT");
   await ensure("characters", "idle_meshy_task_id", "TEXT");
   await ensure("characters", "sleep_meshy_task_id", "TEXT");
+  await ensure("characters", "rig_task_id", "TEXT");
 
   await ensure("actions", "animation_path", "TEXT");
   await ensure("actions", "generation_status", "TEXT NOT NULL DEFAULT 'pending'");

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
-import { createAnimation, actionPromptFor } from "@/lib/meshy";
+import { createAnimation } from "@/lib/meshy";
 import { saveAction, findActionById, updateSpeechBubble, updateActionSchedule } from "@/repository/actionRepository";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import AuthModal from "@/components/AuthModal";
@@ -45,17 +45,15 @@ export default function ActionFormPage() {
 
   async function handleStartGeneration() {
     if (!actionName.trim() || !character) return;
-    if (!character.modelRemoteUrl) {
-      setError("캐릭터 3D 모델이 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요.");
+    if (!character.rigTaskId) {
+      setError("캐릭터 리깅이 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요.");
       return;
     }
     setStep("generating");
     setError(null);
     try {
-      const taskId = await createAnimation(
-        character.modelRemoteUrl,
-        actionPromptFor(actionName.trim())
-      );
+      // rig_task_id + action_id(1=walking) 로 커스텀 애니메이션 생성
+      const taskId = await createAnimation(character.rigTaskId, 1);
       setPendingTaskId(taskId);
       setStep("detail");
     } catch (e) {

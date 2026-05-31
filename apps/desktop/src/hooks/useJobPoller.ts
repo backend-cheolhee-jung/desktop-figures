@@ -12,10 +12,10 @@ import {
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import {
-  pollTask,
-  createAnimation,
-  IDLE_PROMPT,
-  SLEEP_PROMPT,
+  pollTextModel,
+  createRig,
+  pollRig,
+  pollAnimation,
 } from "@/lib/meshy";
 import { downloadGlb } from "@/lib/glbUtils";
 
@@ -49,9 +49,9 @@ async function pollCharacters(): Promise<void> {
   let changed = false;
 
   for (const c of chars) {
-    // 단계 1: base model
+    // 단계 1: text-to-3d 폴링 → 완료 시 base GLB 다운로드 + rig 요청
     if (c.meshyTaskId && !c.modelPath) {
-      const r = await pollTask(c.meshyTaskId, c.modelTaskType);
+      const r = await pollTextModel(c.meshyTaskId);
       if (r.status === "failed") {
         await updateCharacterFields(c.id, { generationStatus: "failed" });
         changed = true;
@@ -59,48 +59,43 @@ async function pollCharacters(): Promise<void> {
       }
       if (r.status === "succeeded" && r.glbUrl) {
         const path = await downloadGlb(r.glbUrl, `models/${c.id}`, "base.glb");
-        const idleTask = await createAnimation(r.glbUrl, IDLE_PROMPT);
-        const sleepTask = await createAnimation(r.glbUrl, SLEEP_PROMPT);
+        const rigTaskId = await createRig(r.glbUrl);
         await updateCharacterFields(c.id, {
           modelPath: path,
           modelRemoteUrl: r.glbUrl,
-          idleMeshyTaskId: idleTask,
-          sleepMeshyTaskId: sleepTask,
+          rigTaskId,
         });
         changed = true;
       }
       continue;
     }
 
-    // 단계 2: idle / sleep 애니메이션
-    const fields: Parameters<typeof updateCharacterFields>[1] = {};
-    if (c.idleMeshyTaskId && !c.idleAnimPath) {
-      const r = await pollTask(c.idleMeshyTaskId, "animation");
-      if (r.status === "succeeded" && r.glbUrl) {
-        fields.idleAnimPath = await downloadGlb(r.glbUrl, `models/${c.id}`, "idle.glb");
-      } else if (r.status === "failed") {
-        fields.generationStatus = "failed";
+    // 단계 2: rig 폴링 → 완료 시 walking GLB(idle) + rigged GLB(sleep) 저장
+    if (c.rigTaskId && !c.idleAnimPath) {
+      const r = await pollRig(c.rigTaskId);
+      if (r.status === "failed") {
+        await updateCharacterFields(c.id, { generationStatus: "failed" });
+        changed = true;
+        continue;
       }
-    }
-    if (c.sleepMeshyTaskId && !c.sleepAnimPath) {
-      const r = await pollTask(c.sleepMeshyTaskId, "animation");
-      if (r.status === "succeeded" && r.glbUrl) {
-        fields.sleepAnimPath = await downloadGlb(r.glbUrl, `models/${c.id}`, "sleep.glb");
-      } else if (r.status === "failed") {
-        fields.generationStatus = "failed";
+      if (r.status === "succeeded") {
+        const fields: Parameters<typeof updateCharacterFields>[1] = {};
+
+        if (r.walkingGlbUrl) {
+          fields.idleAnimPath = await downloadGlb(r.walkingGlbUrl, `models/${c.id}`, "idle.glb");
+        }
+        if (r.riggedGlbUrl) {
+          fields.sleepAnimPath = await downloadGlb(r.riggedGlbUrl, `models/${c.id}`, "sleep.glb");
+        }
+
+        if ((fields.idleAnimPath || c.idleAnimPath) && (fields.sleepAnimPath || c.sleepAnimPath)) {
+          fields.generationStatus = "ready";
+        }
+
+        await updateCharacterFields(c.id, fields);
+        changed = true;
       }
-    }
-
-    // 단계 3: 둘 다 완료 시 ready
-    const idleDone = c.idleAnimPath || fields.idleAnimPath;
-    const sleepDone = c.sleepAnimPath || fields.sleepAnimPath;
-    if (idleDone && sleepDone && fields.generationStatus !== "failed") {
-      fields.generationStatus = "ready";
-    }
-
-    if (Object.keys(fields).length > 0) {
-      await updateCharacterFields(c.id, fields);
-      changed = true;
+      continue;
     }
   }
 
@@ -116,7 +111,7 @@ async function pollActions(): Promise<void> {
 
   for (const a of actions) {
     if (!a.meshyTaskId) continue;
-    const r = await pollTask(a.meshyTaskId, "animation");
+    const r = await pollAnimation(a.meshyTaskId);
     if (r.status === "succeeded" && r.glbUrl) {
       const path = await downloadGlb(r.glbUrl, "models/actions", `${a.id}.glb`);
       await updateActionFields(a.id, {
