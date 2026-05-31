@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: admin-server
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/desktop_figures}
+    username: ${DB_USERNAME:postgres}
+    password: ENC(${DB_PASSWORD_ENC:postgres})
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    table: flyway_schema_history_admin   # auth-server와 분리
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: 8081
+
+admin-jwt:
+  secret: ENC(${ADMIN_JWT_SECRET_ENC:dev-admin-secret-minimum-32-characters-xx})
+  expiration: 3600000   # 1시간
+
+admin-seed:
+  username: ${ADMIN_SEED_USERNAME:operator}
+  password: ${ADMIN_SEED_PASSWORD:operator1234}
+
+jasypt:
+  encryptor:
+    algorithm: PBEWithMD5AndDES
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator
