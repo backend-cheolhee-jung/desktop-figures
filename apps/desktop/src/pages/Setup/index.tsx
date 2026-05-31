@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
-import { useDragDrop } from "@/hooks/useDragDrop";
-import { createTextModel, createImageModel } from "@/lib/meshy";
+import { createTextModel } from "@/lib/meshy";
 import { saveCharacter } from "@/repository/characterRepository";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
@@ -20,10 +19,7 @@ export default function SetupPage() {
   const [loadingMsg, setLoadingMsg] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const { isDragging, previewUrl, base64, handleDragOver, handleDragLeave, handleDrop, reset } =
-    useDragDrop();
-
-  const canCreate = characterName.trim() && (base64 || description.trim());
+  const canCreate = characterName.trim() && description.trim();
 
   async function handleCreate() {
     if (!canCreate) return;
@@ -33,19 +29,11 @@ export default function SetupPage() {
     try {
       setLoadingMsg("AI에게 3D 캐릭터 생성을 요청하는 중...");
 
-      let taskId: string;
-      let taskType: "text" | "image";
-      if (base64) {
-        taskId = await createImageModel(`data:image/png;base64,${base64}`);
-        taskType = "image";
-      } else {
-        taskId = await createTextModel(description.trim());
-        taskType = "text";
-      }
+      const taskId = await createTextModel(description.trim());
 
       const character = await saveCharacter({
         name: characterName.trim(),
-        modelTaskType: taskType,
+        modelTaskType: "text",
         generationStatus: "pending",
         meshyTaskId: taskId,
       });
@@ -68,48 +56,11 @@ export default function SetupPage() {
         나만의 캐릭터 만들기
       </h1>
 
-      {/* 드래그 영역 */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={[
-          "w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center text-sm transition-colors cursor-default",
-          isDragging
-            ? "border-blue-400 bg-blue-50 text-blue-500"
-            : previewUrl
-            ? "border-gray-200 bg-gray-50"
-            : "border-gray-300 text-gray-400 hover:border-gray-400",
-        ].join(" ")}
-      >
-        {previewUrl ? (
-          <div className="relative w-full h-full flex items-center justify-center">
-            <img
-              src={previewUrl}
-              alt="preview"
-              className="max-h-full max-w-full object-contain rounded-xl"
-            />
-            <button
-              onClick={reset}
-              className="absolute top-1 right-1 bg-white/80 rounded-full w-5 h-5 text-gray-500 text-xs flex items-center justify-center hover:bg-white shadow"
-            >
-              ✕
-            </button>
-          </div>
-        ) : (
-          <>
-            <span className="text-2xl mb-1">🖼️</span>
-            <span>이미지를 드래그하거나</span>
-            <span className="text-xs text-gray-300 mt-0.5">아래 텍스트로만 생성도 가능해요</span>
-          </>
-        )}
-      </div>
-
       {/* 텍스트 설명 입력 */}
       <div className="flex flex-col gap-1">
         <label className="text-xs text-gray-500 font-medium">
-          캐릭터 설명
-          <span className="text-gray-400 font-normal ml-1">(선택 · 구체적일수록 더 좋은 캐릭터가 나와요)</span>
+          캐릭터 설명 <span className="text-red-400">*</span>
+          <span className="text-gray-400 font-normal ml-1">(구체적일수록 더 좋은 캐릭터가 나와요)</span>
         </label>
         <textarea
           value={description}
