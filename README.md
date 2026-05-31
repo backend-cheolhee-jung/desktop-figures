@@ -23,10 +23,11 @@
 
 ## 프로젝트 개요
 
-Desktop Figures는 사용자가 이미지를 드래그하면 AI(Vertex AI Imagen)가 귀여운 3D 캐릭터로 변환해 주고, 그 캐릭터가 데스크탑 위에서 현재 하는 일(코딩, 공부, 휴식 등)을 실시간으로 표현하는 앱이다.
+Desktop Figures는 사용자가 이미지를 드래그하거나 텍스트로 설명하면 AI(Meshy.ai)가 **진짜 3D 캐릭터 모델(GLB)** 로 생성해 주고, 그 캐릭터가 데스크탑 위에서 React Three Fiber로 실시간 렌더링되며 현재 하는 일(코딩, 공부, 휴식 등)을 3D 애니메이션으로 표현하는 앱이다.
 
-- **비회원도 완전 사용 가능** — 친구 기능만 회원가입 필요
-- **오프라인 우선** — 모든 데이터는 로컬 SQLite에 먼저 저장
+- **3D 네이티브** — 2D PNG가 아닌 GLB 3D 모델 + 내장 애니메이션 클립 재생
+- **백그라운드 생성** — 3D 생성은 5~10분 걸리므로 비블로킹으로 요청하고 폴러가 완료 시 반영
+- **오프라인 우선** — 모든 데이터/모델은 로컬 SQLite + AppData에 먼저 저장
 - **소셜** — 친구가 지금 무엇을 하는지 실시간으로 확인 가능
 
 ---
@@ -48,10 +49,11 @@ Desktop Figures는 사용자가 이미지를 드래그하면 AI(Vertex AI Imagen
 └─────────────────────┘     └─────────────────────────────┘
            │
            ▼
-┌─────────────────────┐
-│  Vertex AI Imagen   │
-│  (캐릭터 이미지 생성) │
-└─────────────────────┘
+┌─────────────────────────────┐
+│        Meshy.ai API          │
+│  text/image → 3D GLB 모델     │
+│  + 애니메이션 클립 생성 (async) │
+└─────────────────────────────┘
 ```
 
 ---
@@ -69,14 +71,18 @@ desktop-figures/
 │       │   │   ├── FriendWidget/   # 친구 상태 표시
 │       │   │   ├── SpeechBubble/   # 말풍선
 │       │   │   └── VoiceIcon/      # 음성 아이콘 (5종)
+│       │   ├── components/
+│       │   │   └── CharacterViewer/ # R3F Canvas — GLB 로드 + 애니메이션 재생
 │       │   ├── pages/
 │       │   │   ├── Setup/          # 초기 설정 (캐릭터 생성)
 │       │   │   ├── Main/           # 메인 위젯 화면
 │       │   │   └── Settings/       # 설정 (토큰, 계정)
 │       │   ├── hooks/
+│       │   │   └── useJobPoller.ts  # Meshy 생성 잡 백그라운드 폴링 (15s)
 │       │   ├── store/              # Zustand 상태 관리
 │       │   └── lib/
-│       │       ├── llm.ts          # Vertex AI 요청
+│       │       ├── meshy.ts        # Meshy.ai 3D 생성 API 래퍼
+│       │       ├── glbUtils.ts     # GLB 다운로드/저장 + 표시 URL 변환
 │       │       ├── sqlite.ts       # 로컬 DB 래퍼
 │       │       └── sync.ts         # 서버 동기화
 │       └── src-tauri/
@@ -115,20 +121,22 @@ desktop-figures/
 
 | 단계 | 동작 |
 |------|------|
-| 이미지 드래그 앤 드롭 | 사용자 이미지를 앱 위에 드래그 |
-| LLM 요청 | Vertex AI에 "귀여운 3D 클레이 캐릭터" 스타일로 변환 요청 |
-| 이미지 저장 | 기본 이미지 + 수면 이미지 동시 생성 → 로컬 저장 |
+| 입력 | 이미지 드래그 앤 드롭 **또는** 텍스트 설명 |
+| 3D 모델 요청 | Meshy.ai `image-to-3d` / `text-to-3d`로 GLB 모델 생성 (async, pending 저장) |
+| 후속 애니메이션 | base 모델 완료 시 폴러가 idle/sleep 애니메이션 클립 2건 자동 요청 |
+| 로컬 저장 | 완료된 GLB를 AppData에 다운로드, `generation_status = ready` |
 | 이름 설정 | 캐릭터 이름 입력 |
 
 - 캐릭터는 1개만 생성 가능 (추후 다중 지원 가능)
-- 수면 이미지는 캐릭터 생성 시 **항상 함께 생성** (별도 LLM 호출 없이 동일 요청에 포함)
+- 생성은 5~10분 소요 → **비블로킹**: 즉시 main으로 이동하고 `useJobPoller`(15초)가 완료를 반영
+- 의존 잡 시퀀스: **base 모델 → idle + sleep 애니메이션 → ready**
 
 ### 2. 행동(Action) 등록
 
 | 필드 | 설명 |
 |------|------|
 | 이름 | 행동 이름 (e.g., 코딩, 공부, 운동) |
-| 캐릭터 이미지 | Vertex AI로 행동 전용 이미지 생성 |
+| 애니메이션 | Meshy.ai `animations`로 캐릭터 모델에 행동 전용 애니메이션 클립 생성 (async) |
 | 말풍선 텍스트 | 행동 중 표시할 텍스트 (행동 중에도 수정 가능) |
 | 음성 파일 | MP3/WAV 첨부 (짧은 구간 반복 루프 지원) |
 | 예약 시간 | 특정 시간에 자동 시작 |
@@ -141,14 +149,14 @@ desktop-figures/
 
 ```
 [유휴 상태]
- - 수면 애니메이션 (CSS keyframe)
+ - sleep 애니메이션 GLB 재생 (R3F)
  - "zzz" 말풍선
  - 바탕화면 레이어 (z-index 최하단)
 
       ▼ 예약된 행동 시작 시간 도달
 
 [행동 중]
- - 행동 전용 이미지 표시
+ - 행동 전용 애니메이션 GLB 재생 (없으면 idle GLB로 폴백)
  - 말풍선 텍스트 표시 (클릭 → 인라인 편집)
  - 타이머 카운트다운
  - always-on-top 모드 (브라우저보다 전면에 노출)
@@ -169,8 +177,8 @@ desktop-figures/
 ### 5. 설정 화면
 
 - 톱니바퀴 아이콘 → 설정 패널 열기
-- Vertex AI API 토큰 입력/저장 (Tauri SecureStorage → OS 키체인)
-- 기본값: 개발용 토큰 (환경변수 주입, 소스코드 하드코딩 금지)
+- Meshy.ai API 키 입력/저장 (Tauri SecureStorage → OS 키체인 / 개발 시 `.env`)
+- 기본값: 개발용 키 (환경변수 주입, 소스코드 하드코딩 금지)
 - 계정 연결/로그아웃
 
 ### 6. 친구 & 소셜
@@ -194,35 +202,35 @@ desktop-figures/
 
 ---
 
-## LLM 유스케이스
+## Meshy.ai 유스케이스
 
-**Vertex AI에 요청하는 경우는 2가지뿐.**
+**모든 생성은 async task 기반이다 — 요청 시 `taskId`를 받아 DB에 `pending`으로 저장하고, `useJobPoller`가 15초 간격으로 폴링하여 완료 시 GLB를 다운로드한다.** 폴링 엔드포인트가 task 종류별로 다르므로 `model_task_type`(text/image)을 함께 저장한다.
 
-### 케이스 1: 캐릭터 등록
-
-```
-입력:
-  - 사용자 이미지 (base64)
-  - 프롬프트: "이 이미지를 참고하여 귀엽고 통통한 3D 클레이 스타일 캐릭터를 만들어주세요.
-               배경 없음(투명), PNG 포맷.
-               결과 2장: ①기본 포즈 ②눈 감고 자는 포즈"
-
-출력:
-  - base_image.png  (기본 포즈)
-  - sleep_image.png (수면 포즈)
-```
-
-### 케이스 2: 행동 등록
+### 케이스 1: 캐릭터 모델 생성 (1회)
 
 ```
-입력:
-  - 기본 캐릭터 이미지 (base64)
-  - 프롬프트: "이 캐릭터가 [행동 이름]을 하는 모습을 만들어주세요.
-               배경 없음(투명), PNG 포맷."
+POST /openapi/v2/text-to-3d   (mode: preview, art_style: realistic)   ← 텍스트 입력
+POST /openapi/v1/image-to-3d  (image_url: "data:image/png;base64,...") ← 이미지 입력
+→ { result: taskId }
 
-출력:
-  - action_image.png (행동 전용 포즈)
+폴링 SUCCEEDED → model_urls.glb 다운로드 → base.glb 저장
 ```
+
+### 케이스 2: 캐릭터 표준 애니메이션 (base 완료 후 자동, 2회)
+
+```
+POST /openapi/v1/animations  { model_url, prompt: "<idle | sleep prompt>" }
+→ idle.glb, sleep.glb 저장 → 둘 다 완료 시 generation_status = ready
+```
+
+### 케이스 3: 행동 애니메이션 (행동 등록 시마다)
+
+```
+POST /openapi/v1/animations  { model_url, prompt: "character <행동 이름>, looping motion" }
+→ actions/<id>.glb 저장
+```
+
+> ⚠️ `text-to-3d`의 `art_style`은 `realistic`만 허용된다(미리보기 모드). `image-to-3d`는 `data:` URL을 정상 수락한다(실측 확인).
 
 ---
 
@@ -232,21 +240,30 @@ desktop-figures/
 
 ```sql
 CREATE TABLE characters (
-    id               TEXT PRIMARY KEY,
-    name             TEXT NOT NULL,
-    base_image_path  TEXT NOT NULL,
-    sleep_image_path TEXT NOT NULL,
-    server_id        TEXT,
-    created_at       INTEGER NOT NULL,
-    updated_at       INTEGER NOT NULL,
-    synced_at        INTEGER
+    id                  TEXT PRIMARY KEY,
+    name                TEXT NOT NULL,
+    model_path          TEXT,            -- base.glb 로컬 경로
+    model_remote_url    TEXT,            -- Meshy CDN GLB URL (애니메이션 생성 입력)
+    model_task_type     TEXT NOT NULL DEFAULT 'text',  -- text | image (폴링 엔드포인트 분기)
+    idle_anim_path      TEXT,            -- idle.glb
+    sleep_anim_path     TEXT,            -- sleep.glb
+    generation_status   TEXT NOT NULL DEFAULT 'pending', -- pending | ready | failed
+    meshy_task_id       TEXT,            -- base 모델 task
+    idle_meshy_task_id  TEXT,
+    sleep_meshy_task_id TEXT,
+    server_id           TEXT,
+    created_at          INTEGER NOT NULL,
+    updated_at          INTEGER NOT NULL,
+    synced_at           INTEGER
 );
 
 CREATE TABLE actions (
     id                TEXT PRIMARY KEY,
     character_id      TEXT NOT NULL REFERENCES characters(id),
     name              TEXT NOT NULL,
-    action_image_path TEXT NOT NULL,
+    animation_path    TEXT,             -- 행동 애니메이션 GLB 로컬 경로
+    generation_status TEXT NOT NULL DEFAULT 'pending', -- pending | ready | failed
+    meshy_task_id     TEXT,
     speech_bubble     TEXT,
     voice_file_path   TEXT,
     voice_loop_start  INTEGER,
@@ -283,8 +300,9 @@ CREATE TABLE characters (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID NOT NULL REFERENCES users(id),
     name            VARCHAR(100) NOT NULL,
-    base_image_url  TEXT NOT NULL,
-    sleep_image_url TEXT NOT NULL,
+    model_url       TEXT NOT NULL,   -- base GLB (S3)
+    idle_anim_url   TEXT,            -- idle GLB
+    sleep_anim_url  TEXT,            -- sleep GLB
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -293,7 +311,7 @@ CREATE TABLE actions (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     character_id     UUID NOT NULL REFERENCES characters(id),
     name             VARCHAR(100) NOT NULL,
-    action_image_url TEXT NOT NULL,
+    animation_url    TEXT NOT NULL,   -- 행동 애니메이션 GLB (S3)
     speech_bubble    TEXT,
     scheduled_at     TIMESTAMPTZ,
     duration_minutes INTEGER,
@@ -347,6 +365,12 @@ CREATE TABLE friendships (
 | `feature/speech-bubble` | 말풍선 컴포넌트 + 인라인 편집 | #7 |
 | `feature/voice-system` | 음성 파일 첨부 + 5종 아이콘 + 파형 애니메이션 | #8 |
 | `feature/settings` | 설정 화면 (Vertex AI 토큰 관리) | #9 |
+
+### Phase 1.5: 3D 전환 (진행)
+
+| 브랜치 | 내용 | PR |
+|--------|------|----|
+| `feature/3d-character` | Vertex AI 2D PNG → Meshy.ai 3D GLB + React Three Fiber 렌더링 전환 (캐릭터/행동 생성, 백그라운드 폴러, DB 마이그레이션) | — |
 
 ### Phase 2: 백엔드 서비스
 
@@ -411,7 +435,7 @@ npm run tauri dev
 
 ```bash
 # apps/desktop/.env
-VITE_VERTEX_AI_TOKEN=your_vertex_ai_token_here
+VITE_MESHY_API_KEY=your_meshy_api_key_here   # https://www.meshy.ai/api/keys (발급/검증 가이드: docs/meshy-setup.md)
 VITE_AUTH_SERVER_URL=http://localhost:8080
 VITE_SOCKET_SERVER_URL=ws://localhost:9090
 
@@ -454,7 +478,7 @@ AUTH_SERVER_URL=http://localhost:8080
 ## 보안 정책
 
 - **JWT**: Access Token 15분 / Refresh Token 7일
-- **Vertex AI 토큰**: Tauri SecureStorage (OS 키체인) 저장. 소스코드 하드코딩 금지. 개발 시 환경변수 주입
+- **Meshy.ai API 키**: Tauri SecureStorage (OS 키체인) 저장. 소스코드 하드코딩 금지. 개발 시 `.env` 환경변수 주입
 - **비밀번호**: bcrypt 해싱
 - **이미지**: S3 Presigned URL
 - **WebSocket**: 연결 시 JWT 검증
@@ -467,9 +491,10 @@ AUTH_SERVER_URL=http://localhost:8080
 |------|------|
 | Desktop UI | React + TypeScript + Tailwind CSS |
 | Desktop 런타임 | Tauri (Rust) |
+| 3D 렌더링 | three.js + @react-three/fiber + @react-three/drei |
 | 로컬 DB | SQLite (`tauri-plugin-sql`) |
 | 상태 관리 | Zustand |
-| LLM | Vertex AI Imagen |
+| 3D 생성 AI | Meshy.ai (text/image → GLB, animations) |
 | Auth Server | Kotlin + Spring Boot 3 |
 | Socket Server | Kotlin + Ktor |
 | Server DB | PostgreSQL |
