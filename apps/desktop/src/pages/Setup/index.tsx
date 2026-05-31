@@ -5,6 +5,8 @@ import { useActionStore } from "@/store/actionStore";
 import { createTextModel } from "@/lib/meshy";
 import { saveCharacter } from "@/repository/characterRepository";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import AuthModal from "@/components/AuthModal";
+import { useGenerationGate } from "@/hooks/useGenerationGate";
 
 type Step = "input" | "generating";
 
@@ -12,6 +14,7 @@ export default function SetupPage() {
   const setPage = useAppStore((s) => s.setPage);
   const setCharacter = useCharacterStore((s) => s.setCharacter);
   const setActions = useActionStore((s) => s.setActions);
+  const { showModal, setShowModal, runGated } = useGenerationGate();
 
   const [step, setStep] = useState<Step>("input");
   const [characterName, setCharacterName] = useState("");
@@ -95,7 +98,7 @@ export default function SetupPage() {
 
       {/* 생성 버튼 */}
       <button
-        onClick={handleCreate}
+        onClick={() => runGated(handleCreate)}
         disabled={!canCreate || step === "generating"}
         className="mt-auto bg-blue-500 text-white rounded-2xl py-2.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-600 active:bg-blue-700 transition-colors"
       >
@@ -108,6 +111,13 @@ export default function SetupPage() {
       >
         나중에 하기
       </button>
+
+      {showModal && (
+        <AuthModal
+          onClose={() => setShowModal(false)}
+          onApproved={() => { setShowModal(false); handleCreate(); }}
+        />
+      )}
     </div>
   );
 }
