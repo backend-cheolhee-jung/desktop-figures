@@ -23,7 +23,7 @@
 
 ## 프로젝트 개요
 
-Desktop Figures는 사용자가 이미지를 드래그하거나 텍스트로 설명하면 AI(Meshy.ai)가 **진짜 3D 캐릭터 모델(GLB)** 로 생성해 주고, 그 캐릭터가 데스크탑 위에서 React Three Fiber로 실시간 렌더링되며 현재 하는 일(코딩, 공부, 휴식 등)을 3D 애니메이션으로 표현하는 앱이다.
+Desktop Figures는 사용자가 텍스트로 캐릭터를 설명하면 AI(Meshy.ai)가 **진짜 3D 캐릭터 모델(GLB)** 로 생성해 주고, 그 캐릭터가 데스크탑 위에서 React Three Fiber로 실시간 렌더링되며 현재 하는 일(코딩, 공부, 휴식 등)을 3D 애니메이션으로 표현하는 앱이다.
 
 - **3D 네이티브** — 2D PNG가 아닌 GLB 3D 모델 + 내장 애니메이션 클립 재생
 - **백그라운드 생성** — 3D 생성은 5~10분 걸리므로 비블로킹으로 요청하고 폴러가 완료 시 반영
@@ -121,8 +121,8 @@ desktop-figures/
 
 | 단계 | 동작 |
 |------|------|
-| 입력 | 이미지 드래그 앤 드롭 **또는** 텍스트 설명 |
-| 3D 모델 요청 | Meshy.ai `image-to-3d` / `text-to-3d`로 GLB 모델 생성 (async, pending 저장) |
+| 입력 | 텍스트 설명 (캐릭터 묘사) |
+| 3D 모델 요청 | Meshy.ai `text-to-3d`로 GLB 모델 생성 (async, pending 저장) |
 | 후속 애니메이션 | base 모델 완료 시 폴러가 idle/sleep 애니메이션 클립 2건 자동 요청 |
 | 로컬 저장 | 완료된 GLB를 AppData에 다운로드, `generation_status = ready` |
 | 이름 설정 | 캐릭터 이름 입력 |
@@ -206,11 +206,10 @@ desktop-figures/
 
 **모든 생성은 async task 기반이다 — 요청 시 `taskId`를 받아 DB에 `pending`으로 저장하고, `useJobPoller`가 15초 간격으로 폴링하여 완료 시 GLB를 다운로드한다.** 폴링 엔드포인트가 task 종류별로 다르므로 `model_task_type`(text/image)을 함께 저장한다.
 
-### 케이스 1: 캐릭터 모델 생성 (1회)
+### 케이스 1: 캐릭터 모델 생성 (1회, 텍스트 전용)
 
 ```
 POST /openapi/v2/text-to-3d   (mode: preview, art_style: realistic)   ← 텍스트 입력
-POST /openapi/v1/image-to-3d  (image_url: "data:image/png;base64,...") ← 이미지 입력
 → { result: taskId }
 
 폴링 SUCCEEDED → model_urls.glb 다운로드 → base.glb 저장
@@ -230,7 +229,7 @@ POST /openapi/v1/animations  { model_url, prompt: "character <행동 이름>, lo
 → actions/<id>.glb 저장
 ```
 
-> ⚠️ `text-to-3d`의 `art_style`은 `realistic`만 허용된다(미리보기 모드). `image-to-3d`는 `data:` URL을 정상 수락한다(실측 확인).
+> ⚠️ `text-to-3d`의 `art_style`은 `realistic`만 허용된다(미리보기 모드, 실측 확인).
 
 ---
 
