@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { useAppStore } from "@/store/appStore";
+import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { useAppStore, Page } from "@/store/appStore";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import { findFirstCharacter } from "@/repository/characterRepository";
@@ -10,6 +11,20 @@ import MainPage from "@/pages/Main";
 import SettingsPage from "@/pages/Settings";
 import ActionPanelPage from "@/pages/ActionPanel";
 import ActionFormPage from "@/pages/ActionForm";
+
+const WIDGET_SIZE = new LogicalSize(160, 220);
+const PANEL_SIZE = new LogicalSize(320, 500);
+
+async function resizeWindow(page: Page) {
+  const win = getCurrentWindow();
+  if (page === "main") {
+    await win.setSize(WIDGET_SIZE);
+    await win.setResizable(false);
+  } else {
+    await win.setSize(PANEL_SIZE);
+    await win.setResizable(false);
+  }
+}
 
 export default function App() {
   const currentPage = useAppStore((s) => s.currentPage);
@@ -35,6 +50,12 @@ export default function App() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (currentPage !== "loading") {
+      resizeWindow(currentPage);
+    }
+  }, [currentPage]);
 
   if (currentPage === "loading") return null;
 
