@@ -153,3 +153,8 @@ export async function findPendingActions(): Promise<Action[]> {
   );
   return rows.map(toAction);
 }
+
+export async function deleteActionsByCharacterId(characterId: string): Promise<void> {
+  const db = await getDb();
+  await db.execute("DELETE FROM actions WHERE character_id = ?", [characterId]);
+}
