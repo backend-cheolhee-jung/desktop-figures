@@ -7,11 +7,13 @@ export function useGenerationGate() {
 
   const runGated = useCallback(
     (action: () => void) => {
-      if (isApproved()) {
-        action();
-      } else {
-        setShowModal(true);
-      }
+      // TODO: 로그인 게이트 비활성화
+      // if (isApproved()) {
+      //   action();
+      // } else {
+      //   setShowModal(true);
+      // }
+      action();
     },
     [isApproved]
   );
