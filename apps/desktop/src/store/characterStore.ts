@@ -16,6 +16,7 @@ export interface Character {
   rigTaskId?: string;
   idleMeshyTaskId?: string;
   sleepMeshyTaskId?: string;
+  idleSpeechBubble?: string;
   serverId?: string;
   createdAt: number;
   updatedAt: number;
