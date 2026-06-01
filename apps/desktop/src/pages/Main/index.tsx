@@ -53,7 +53,10 @@ export default function MainPage() {
   const idleSpeech = character?.idleSpeechBubble ?? "zzz...";
 
   return (
-    <div className="relative flex flex-col items-center justify-end h-full pb-4 select-none">
+    <div
+      className="relative flex flex-col items-center justify-end h-full pb-4 select-none"
+      data-tauri-drag-region
+    >
       {/* 상단 버튼 */}
       <div className="absolute top-2 right-2 flex gap-1.5">
         <button
@@ -68,16 +71,18 @@ export default function MainPage() {
       {/* 말풍선 */}
       {status === "idle" && (
         <div
-          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-500 border border-gray-100 cursor-context-menu"
+          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-500 border border-gray-100 cursor-grab active:cursor-grabbing"
           onContextMenu={handleContextMenu}
+          data-tauri-drag-region
         >
           {idleSpeech}
         </div>
       )}
       {status === "active" && currentAction?.speechBubble && (
         <div
-          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-700 border border-gray-100 flex items-center gap-1 cursor-context-menu"
+          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-700 border border-gray-100 flex items-center gap-1 cursor-grab active:cursor-grabbing"
           onContextMenu={handleContextMenu}
+          data-tauri-drag-region
         >
           <span className="truncate max-w-[140px]">{currentAction.speechBubble}</span>
         </div>
@@ -85,8 +90,9 @@ export default function MainPage() {
 
       {/* 캐릭터 3D 뷰어 + 오버레이 패널 */}
       <div
-        className="relative w-32 h-32 flex items-center justify-center cursor-context-menu"
+        className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing"
         onContextMenu={handleContextMenu}
+        data-tauri-drag-region
       >
         {character ? (
           <CharacterViewer
