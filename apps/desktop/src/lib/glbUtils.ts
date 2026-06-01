@@ -1,5 +1,4 @@
-import { BaseDirectory, mkdir, writeFile } from "@tauri-apps/plugin-fs";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { BaseDirectory, mkdir, readFile, writeFile } from "@tauri-apps/plugin-fs";
 
 // 원격 GLB URL → AppData에 다운로드 후 로컬 상대경로 반환
 export async function downloadGlb(
@@ -18,7 +17,9 @@ export async function downloadGlb(
   return relativePath;
 }
 
-// 로컬 상대경로 → webview에서 로드 가능한 절대 URL
-export function toGlbUrl(relativePath: string): string {
-  return convertFileSrc(relativePath);
+// 로컬 상대경로 → Blob URL (asset protocol 권한 없이도 동작)
+export async function toGlbUrl(relativePath: string): Promise<string> {
+  const bytes = await readFile(relativePath, { baseDir: BaseDirectory.AppData });
+  const blob = new Blob([bytes], { type: "model/gltf-binary" });
+  return URL.createObjectURL(blob);
 }
