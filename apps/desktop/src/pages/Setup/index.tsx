@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
-import { generateCharacterImages } from "@/lib/llm";
-import { saveBase64Image } from "@/lib/imageUtils";
+import { createTextModel } from "@/lib/meshy";
 import { saveCharacter } from "@/repository/characterRepository";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import AuthModal from "@/components/AuthModal";
+import { useGenerationGate } from "@/hooks/useGenerationGate";
 
 type Step = "input" | "generating";
 
@@ -13,6 +14,7 @@ export default function SetupPage() {
   const setPage = useAppStore((s) => s.setPage);
   const setCharacter = useCharacterStore((s) => s.setCharacter);
   const setActions = useActionStore((s) => s.setActions);
+  const { showModal, setShowModal, runGated } = useGenerationGate();
 
   const [step, setStep] = useState<Step>("input");
   const [characterName, setCharacterName] = useState("");
@@ -28,28 +30,22 @@ export default function SetupPage() {
     setError(null);
 
     try {
-      setLoadingMsg("AI가 캐릭터를 그리고 있어요... (30초~1분 소요)");
-      const { baseImage, sleepImage } = await generateCharacterImages(description.trim());
+      setLoadingMsg("AI에게 3D 캐릭터 생성을 요청하는 중...");
 
-      setLoadingMsg("이미지를 저장하는 중...");
-      const id = crypto.randomUUID();
-      const [basePath, sleepPath] = await Promise.all([
-        saveBase64Image(baseImage, `characters/${id}`, "base.png"),
-        saveBase64Image(sleepImage, `characters/${id}`, "sleep.png"),
-      ]);
+      const taskId = await createTextModel(description.trim());
 
       const character = await saveCharacter({
         name: characterName.trim(),
-        baseImagePath: basePath,
-        sleepImagePath: sleepPath,
+        modelTaskType: "text",
+        generationStatus: "pending",
+        meshyTaskId: taskId,
       });
 
       setCharacter(character);
       setActions([]);
       setPage("main");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg || "캐릭터 생성에 실패했어요.");
+      setError(e instanceof Error ? e.message : "캐릭터 생성 요청에 실패했어요.");
       setStep("input");
     }
   }
@@ -62,10 +58,11 @@ export default function SetupPage() {
         나만의 캐릭터 만들기
       </h1>
 
+      {/* 텍스트 설명 입력 */}
       <div className="flex flex-col gap-1">
         <label className="text-xs text-gray-500 font-medium">
           캐릭터 설명 <span className="text-red-400">*</span>
-          <span className="text-gray-400 font-normal ml-1">(구체적일수록 더 좋아요)</span>
+          <span className="text-gray-400 font-normal ml-1">(구체적일수록 더 좋은 캐릭터가 나와요)</span>
         </label>
         <textarea
           value={description}
@@ -93,7 +90,7 @@ export default function SetupPage() {
       {error && <p className="text-xs text-red-400 text-center">{error}</p>}
 
       <button
-        onClick={handleCreate}
+        onClick={() => runGated(handleCreate)}
         disabled={!canCreate || step === "generating"}
         className="mt-auto bg-blue-500 text-white rounded-2xl py-2.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-600 active:bg-blue-700 transition-colors"
       >
@@ -106,6 +103,13 @@ export default function SetupPage() {
       >
         나중에 하기
       </button>
+
+      {showModal && (
+        <AuthModal
+          onClose={() => setShowModal(false)}
+          onApproved={() => { setShowModal(false); handleCreate(); }}
+        />
+      )}
     </div>
   );
 }

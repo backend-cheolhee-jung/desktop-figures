@@ -1,11 +1,14 @@
 import { getDb } from "@/lib/sqlite";
 import { Action } from "@/store/actionStore";
+import { GenerationStatus } from "@/store/characterStore";
 
 interface ActionRow {
   id: string;
   character_id: string;
   name: string;
-  action_image_path: string;
+  animation_path: string | null;
+  generation_status: string;
+  meshy_task_id: string | null;
   speech_bubble: string | null;
   voice_file_path: string | null;
   voice_loop_start: number | null;
@@ -23,7 +26,9 @@ function toAction(row: ActionRow): Action {
     id: row.id,
     characterId: row.character_id,
     name: row.name,
-    actionImagePath: row.action_image_path,
+    animationPath: row.animation_path ?? undefined,
+    generationStatus: row.generation_status as GenerationStatus,
+    meshyTaskId: row.meshy_task_id ?? undefined,
     speechBubble: row.speech_bubble ?? undefined,
     voiceFilePath: row.voice_file_path ?? undefined,
     voiceLoopStart: row.voice_loop_start ?? undefined,
@@ -45,24 +50,17 @@ export async function saveAction(
 
   await db.execute(
     `INSERT INTO actions
-       (id, character_id, name, action_image_path, speech_bubble,
-        voice_file_path, voice_loop_start, voice_loop_end,
+       (id, character_id, name, animation_path, generation_status, meshy_task_id,
+        speech_bubble, voice_file_path, voice_loop_start, voice_loop_end,
         scheduled_at, duration_minutes, server_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      id,
-      data.characterId,
-      data.name,
-      data.actionImagePath,
-      data.speechBubble ?? null,
-      data.voiceFilePath ?? null,
-      data.voiceLoopStart ?? null,
-      data.voiceLoopEnd ?? null,
-      data.scheduledAt ?? null,
-      data.durationMinutes ?? null,
-      null,
-      now,
-      now,
+      id, data.characterId, data.name, data.animationPath ?? null,
+      data.generationStatus, data.meshyTaskId ?? null,
+      data.speechBubble ?? null, data.voiceFilePath ?? null,
+      data.voiceLoopStart ?? null, data.voiceLoopEnd ?? null,
+      data.scheduledAt ?? null, data.durationMinutes ?? null,
+      null, now, now,
     ]
   );
 
@@ -127,4 +125,31 @@ export async function markActionSynced(id: string, serverId: string): Promise<vo
 export async function deleteAction(id: string): Promise<void> {
   const db = await getDb();
   await db.execute("DELETE FROM actions WHERE id = ?", [id]);
+}
+
+export async function updateActionFields(
+  id: string,
+  fields: Partial<Pick<Action, "animationPath" | "generationStatus">>
+): Promise<void> {
+  const db = await getDb();
+  const map: Record<string, string> = {
+    animationPath: "animation_path",
+    generationStatus: "generation_status",
+  };
+  const entries = Object.entries(fields).filter(([, v]) => v !== undefined);
+  if (entries.length === 0) return;
+  const setClause = entries.map(([k]) => `${map[k]} = ?`).join(", ");
+  const values = entries.map(([, v]) => v);
+  await db.execute(
+    `UPDATE actions SET ${setClause}, updated_at = ? WHERE id = ?`,
+    [...values, Date.now(), id]
+  );
+}
+
+export async function findPendingActions(): Promise<Action[]> {
+  const db = await getDb();
+  const rows = await db.select<ActionRow[]>(
+    "SELECT * FROM actions WHERE generation_status = 'pending'"
+  );
+  return rows.map(toAction);
 }

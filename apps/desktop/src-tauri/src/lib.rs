@@ -1,6 +1,6 @@
 mod commands;
 
-use tauri::{Manager, WindowEvent};
+use tauri::WindowEvent;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -11,16 +11,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::set_always_on_top,
             commands::save_window_position,
-            commands::resize_window,
-            commands::generate_image,
-            commands::read_image_as_data_url,
+            commands::quit_app,
+            commands::hide_window,
         ])
-        .setup(|app| {
-            #[cfg(debug_assertions)]
-            app.get_webview_window("main").unwrap().open_devtools();
+        .setup(|_app| {
             Ok(())
         })
-        // 창 닫기 버튼 → 숨기기만 (프로세스 유지), 시스템 트레이로 계속 실행
+        // 창 닫기(X 클릭) → 숨기기만, 프로세스 유지
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
