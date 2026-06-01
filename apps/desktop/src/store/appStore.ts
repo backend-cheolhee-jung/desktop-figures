@@ -1,10 +1,10 @@
 import { create } from "zustand";
 
-export type Page = "setup" | "main" | "settings" | "action-panel" | "action-form";
+export type Page = "loading" | "setup" | "main" | "settings" | "action-panel" | "action-form";
 
 interface AppState {
   currentPage: Page;
-  editingActionId: string | null; // action-form에서 수정 시 사용
+  editingActionId: string | null;
   isAlwaysOnTop: boolean;
   setPage: (page: Page) => void;
   openActionForm: (actionId?: string) => void;
@@ -12,7 +12,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  currentPage: "main",
+  currentPage: "loading",
   editingActionId: null,
   isAlwaysOnTop: false,
   setPage: (page) => set({ currentPage: page }),
