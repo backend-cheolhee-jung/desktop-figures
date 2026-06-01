@@ -30,7 +30,7 @@ export async function createTextModel(prompt: string): Promise<string> {
     headers: authHeaders(),
     body: JSON.stringify({
       mode: "preview",
-      prompt: `${prompt}, cute chubby 3D clay style character, full body`,
+      prompt: `${prompt}, cute chubby 3D clay style character, full body, vibrant colors, rich color details, colorful textures`,
       art_style: "realistic",
       should_remesh: true,
     }),
