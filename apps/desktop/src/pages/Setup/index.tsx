@@ -45,7 +45,8 @@ export default function SetupPage() {
       setActions([]);
       setPage("main");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "캐릭터 생성 요청에 실패했어요.");
+      console.error("[Setup] handleCreate error:", e);
+      setError(e instanceof Error ? e.message : String(e));
       setStep("input");
     }
   }

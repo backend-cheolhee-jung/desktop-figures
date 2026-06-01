@@ -80,6 +80,46 @@ async function migrateColumns(db: Database): Promise<void> {
     }
   };
 
+  // 구버전 2D 스키마(base_image_path NOT NULL 등)가 남아있으면 테이블 재생성
+  const charCols = await db.select<{ name: string }[]>(`PRAGMA table_info(characters)`);
+  if (charCols.some((c) => c.name === "base_image_path")) {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS characters_new (
+        id                  TEXT PRIMARY KEY,
+        name                TEXT NOT NULL,
+        model_path          TEXT,
+        model_remote_url    TEXT,
+        model_task_type     TEXT NOT NULL DEFAULT 'text',
+        idle_anim_path      TEXT,
+        sleep_anim_path     TEXT,
+        generation_status   TEXT NOT NULL DEFAULT 'pending',
+        meshy_task_id       TEXT,
+        idle_meshy_task_id  TEXT,
+        sleep_meshy_task_id TEXT,
+        rig_task_id         TEXT,
+        server_id           TEXT,
+        created_at          INTEGER NOT NULL,
+        updated_at          INTEGER NOT NULL,
+        synced_at           INTEGER,
+        idle_speech_bubble  TEXT
+      )
+    `);
+    await db.execute(`
+      INSERT INTO characters_new
+        (id, name, model_path, model_remote_url, model_task_type,
+         idle_anim_path, sleep_anim_path, generation_status,
+         meshy_task_id, idle_meshy_task_id, sleep_meshy_task_id,
+         rig_task_id, server_id, created_at, updated_at, synced_at)
+      SELECT id, name, model_path, model_remote_url, model_task_type,
+             idle_anim_path, sleep_anim_path, generation_status,
+             meshy_task_id, idle_meshy_task_id, sleep_meshy_task_id,
+             rig_task_id, server_id, created_at, updated_at, synced_at
+      FROM characters
+    `).catch(() => {});
+    await db.execute(`DROP TABLE characters`);
+    await db.execute(`ALTER TABLE characters_new RENAME TO characters`);
+  }
+
   // 기존 2D 캐릭터 데이터는 재생성 유도를 위해 failed로 표시
   await ensure("characters", "model_path", "TEXT");
   await ensure("characters", "model_remote_url", "TEXT");
