@@ -30,7 +30,7 @@ export async function createTextModel(prompt: string): Promise<string> {
     headers: authHeaders(),
     body: JSON.stringify({
       mode: "preview",
-      prompt: `${prompt}, cute chubby 3D clay style character, full body, vibrant colors, rich color details, colorful textures`,
+      prompt: `${prompt}, super cute chibi 3D character, full body, chubby proportions, big expressive eyes, soft pastel and vibrant color palette, rich colorful textures, high contrast colors, adorable and charming design, smooth clay-like surface`,
       art_style: "realistic",
       should_remesh: true,
     }),
@@ -104,3 +104,19 @@ export async function pollAnimation(animTaskId: string): Promise<MeshyResult> {
   if (raw === "FAILED") return { status: "failed" };
   return { status: "pending" };
 }
+
+export const ANIMATION_PRESETS = [
+  { id: "coding",     label: "코딩/공부",  actionId: 32  },
+  { id: "walking",    label: "걷기",       actionId: 30  },
+  { id: "running",    label: "달리기",     actionId: 14  },
+  { id: "dancing",    label: "춤추기",     actionId: 22  },
+  { id: "waving",     label: "손흔들기",   actionId: 28  },
+  { id: "eating",     label: "식사/음료",  actionId: 343 },
+  { id: "talking",    label: "대화/발표",  actionId: 308 },
+  { id: "workout",    label: "운동/헬스",  actionId: 319 },
+  { id: "stretching", label: "스트레칭",   actionId: 31  },
+  { id: "cheering",   label: "박수/응원",  actionId: 298 },
+  { id: "thinking",   label: "생각중",     actionId: 36  },
+] as const;
+
+export type AnimationPresetId = typeof ANIMATION_PRESETS[number]["id"];

@@ -1,8 +1,7 @@
-import { Component, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Component, Suspense, useEffect, useMemo, useState } from "react";
 import type { ErrorInfo, ReactNode } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import { useGLTF, useAnimations, Environment } from "@react-three/drei";
-import * as THREE from "three";
 import { Character } from "@/store/characterStore";
 import { Action, WidgetStatus } from "@/store/actionStore";
 import { toGlbUrl } from "@/lib/glbUtils";
@@ -13,33 +12,19 @@ interface Props {
   status: WidgetStatus;
 }
 
-function Model({ url, sleeping }: { url: string; sleeping: boolean }) {
-  const groupRef = useRef<THREE.Group>(null);
+function Model({ url }: { url: string }) {
   const { scene, animations } = useGLTF(url);
   const { actions } = useAnimations(animations, scene);
 
   useEffect(() => {
-    if (sleeping) return;
     const first = Object.values(actions)[0];
     first?.reset().fadeIn(0.3).play();
     return () => {
       first?.fadeOut(0.3);
     };
-  }, [actions, sleeping]);
+  }, [actions]);
 
-  useFrame(({ clock }) => {
-    if (!sleeping || !groupRef.current) return;
-    const t = clock.getElapsedTime();
-    groupRef.current.position.y = Math.sin(t * 0.8) * 0.05;
-    const breathe = 1 + Math.sin(t * 0.5) * 0.02;
-    groupRef.current.scale.setScalar(breathe);
-  });
-
-  return (
-    <group ref={groupRef}>
-      <primitive object={scene} scale={1.5} position={[0, -1, 0]} />
-    </group>
-  );
+  return <primitive object={scene} scale={1.5} position={[0, -1, 0]} />;
 }
 
 const Fallback = () => (
@@ -130,7 +115,7 @@ export default function CharacterViewer({ character, currentAction, status }: Pr
         <directionalLight position={[2, 3, 2]} intensity={1} />
         <Environment preset="city" />
         <Suspense fallback={null}>
-          <Model url={url} sleeping={status === "idle"} />
+          <Model url={url} />
         </Suspense>
       </Canvas>
     </ErrorBoundary>
