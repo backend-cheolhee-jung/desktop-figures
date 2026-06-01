@@ -15,6 +15,7 @@ import {
   pollTextModel,
   createRig,
   pollRig,
+  createAnimation,
   pollAnimation,
 } from "@/lib/meshy";
 import { downloadGlb } from "@/lib/glbUtils";
@@ -70,7 +71,7 @@ async function pollCharacters(): Promise<void> {
       continue;
     }
 
-    // 단계 2: rig 폴링 → 완료 시 walking GLB(idle) + rigged GLB(sleep) 저장
+    // 단계 2: rig 폴링 → idle.glb 다운로드 + sleep animation 요청 (action_id 269)
     if (c.rigTaskId && !c.idleAnimPath) {
       const r = await pollRig(c.rigTaskId);
       if (r.status === "failed") {
@@ -84,15 +85,29 @@ async function pollCharacters(): Promise<void> {
         if (r.walkingGlbUrl) {
           fields.idleAnimPath = await downloadGlb(r.walkingGlbUrl, `models/${c.id}`, "idle.glb");
         }
-        if (r.riggedGlbUrl) {
-          fields.sleepAnimPath = await downloadGlb(r.riggedGlbUrl, `models/${c.id}`, "sleep.glb");
-        }
-
-        if ((fields.idleAnimPath || c.idleAnimPath) && (fields.sleepAnimPath || c.sleepAnimPath)) {
-          fields.generationStatus = "ready";
-        }
+        const sleepTaskId = await createAnimation(c.rigTaskId, 269);
+        fields.sleepMeshyTaskId = sleepTaskId;
 
         await updateCharacterFields(c.id, fields);
+        changed = true;
+      }
+      continue;
+    }
+
+    // 단계 3: sleep animation 폴링 → sleep.glb 저장 후 ready
+    if (c.sleepMeshyTaskId && !c.sleepAnimPath) {
+      const r = await pollAnimation(c.sleepMeshyTaskId);
+      if (r.status === "failed") {
+        await updateCharacterFields(c.id, { generationStatus: "failed" });
+        changed = true;
+        continue;
+      }
+      if (r.status === "succeeded" && r.glbUrl) {
+        const sleepPath = await downloadGlb(r.glbUrl, `models/${c.id}`, "sleep.glb");
+        await updateCharacterFields(c.id, {
+          sleepAnimPath: sleepPath,
+          generationStatus: "ready",
+        });
         changed = true;
       }
       continue;
