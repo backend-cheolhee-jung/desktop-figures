@@ -22,12 +22,10 @@ export default function App() {
     (async () => {
       try {
         const character = await findFirstCharacter();
-
         if (!character) {
           setPage("setup");
           return;
         }
-
         setCharacter(character);
         setActions(await findActionsByCharacterId(character.id));
         setPage("main");
@@ -37,6 +35,8 @@ export default function App() {
       }
     })();
   }, []);
+
+  if (currentPage === "loading") return null;
 
   const isWidget = currentPage === "main";
 

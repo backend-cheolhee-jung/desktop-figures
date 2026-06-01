@@ -14,6 +14,7 @@ interface CharacterRow {
   rig_task_id: string | null;
   idle_meshy_task_id: string | null;
   sleep_meshy_task_id: string | null;
+  idle_speech_bubble: string | null;
   server_id: string | null;
   created_at: number;
   updated_at: number;
@@ -34,6 +35,7 @@ function toCharacter(row: CharacterRow): Character {
     rigTaskId: row.rig_task_id ?? undefined,
     idleMeshyTaskId: row.idle_meshy_task_id ?? undefined,
     sleepMeshyTaskId: row.sleep_meshy_task_id ?? undefined,
+    idleSpeechBubble: row.idle_speech_bubble ?? undefined,
     serverId: row.server_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -138,4 +140,12 @@ export async function findPendingCharacters(): Promise<Character[]> {
     "SELECT * FROM characters WHERE generation_status = 'pending'"
   );
   return rows.map(toCharacter);
+}
+
+export async function updateIdleSpeechBubble(id: string, text: string): Promise<void> {
+  const db = await getDb();
+  await db.execute(
+    "UPDATE characters SET idle_speech_bubble = ?, updated_at = ? WHERE id = ?",
+    [text, Date.now(), id]
+  );
 }
