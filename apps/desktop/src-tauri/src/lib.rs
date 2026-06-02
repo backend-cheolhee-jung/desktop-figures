@@ -13,6 +13,13 @@ pub fn run() {
             commands::save_window_position,
             commands::quit_app,
             commands::hide_window,
+            commands::meshy_create_text_model,
+            commands::meshy_poll_text_model,
+            commands::meshy_create_rig,
+            commands::meshy_poll_rig,
+            commands::meshy_create_animation,
+            commands::meshy_poll_animation,
+            commands::meshy_download_glb,
         ])
         .setup(|_app| {
             Ok(())

@@ -111,9 +111,10 @@ export default function CharacterViewer({ character, currentAction, status }: Pr
         camera={{ position: [0, 0, 4], fov: 40 }}
         style={{ background: "transparent" }}
       >
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[2, 3, 2]} intensity={1} />
-        <Environment preset="city" />
+        <ambientLight intensity={1.2} />
+        <directionalLight position={[2, 4, 3]} intensity={2} />
+        <directionalLight position={[-2, 2, -1]} intensity={0.8} />
+        <Environment preset="sunset" />
         <Suspense fallback={null}>
           <Model url={url} />
         </Suspense>
