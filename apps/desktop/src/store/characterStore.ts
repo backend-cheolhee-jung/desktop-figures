@@ -13,6 +13,7 @@ export interface Character {
   sleepAnimPath?: string;
   generationStatus: GenerationStatus;
   meshyTaskId?: string;
+  refineMeshyTaskId?: string;
   rigTaskId?: string;
   idleMeshyTaskId?: string;
   sleepMeshyTaskId?: string;

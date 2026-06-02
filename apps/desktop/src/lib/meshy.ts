@@ -22,6 +22,10 @@ export async function pollTextModel(taskId: string): Promise<MeshyResult> {
   return invoke<MeshyResult>("meshy_poll_text_model", { apiKey: API_KEY, taskId });
 }
 
+export async function createRefine(previewTaskId: string): Promise<string> {
+  return invoke<string>("meshy_create_refine", { apiKey: API_KEY, previewTaskId });
+}
+
 export async function createRig(modelGlbUrl: string): Promise<string> {
   return invoke<string>("meshy_create_rig", { apiKey: API_KEY, modelGlbUrl });
 }

@@ -128,6 +128,7 @@ async function migrateColumns(db: Database): Promise<void> {
   await ensure("characters", "sleep_anim_path", "TEXT");
   await ensure("characters", "generation_status", "TEXT NOT NULL DEFAULT 'pending'");
   await ensure("characters", "meshy_task_id", "TEXT");
+  await ensure("characters", "refine_meshy_task_id", "TEXT");
   await ensure("characters", "idle_meshy_task_id", "TEXT");
   await ensure("characters", "sleep_meshy_task_id", "TEXT");
   await ensure("characters", "rig_task_id", "TEXT");

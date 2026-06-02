@@ -11,6 +11,7 @@ interface CharacterRow {
   sleep_anim_path: string | null;
   generation_status: string;
   meshy_task_id: string | null;
+  refine_meshy_task_id: string | null;
   rig_task_id: string | null;
   idle_meshy_task_id: string | null;
   sleep_meshy_task_id: string | null;
@@ -32,6 +33,7 @@ function toCharacter(row: CharacterRow): Character {
     sleepAnimPath: row.sleep_anim_path ?? undefined,
     generationStatus: row.generation_status as GenerationStatus,
     meshyTaskId: row.meshy_task_id ?? undefined,
+    refineMeshyTaskId: row.refine_meshy_task_id ?? undefined,
     rigTaskId: row.rig_task_id ?? undefined,
     idleMeshyTaskId: row.idle_meshy_task_id ?? undefined,
     sleepMeshyTaskId: row.sleep_meshy_task_id ?? undefined,
@@ -110,7 +112,7 @@ export async function updateCharacterFields(
   id: string,
   fields: Partial<Pick<Character,
     "modelPath" | "modelRemoteUrl" | "idleAnimPath" | "sleepAnimPath" |
-    "generationStatus" | "rigTaskId" | "idleMeshyTaskId" | "sleepMeshyTaskId">>
+    "generationStatus" | "rigTaskId" | "refineMeshyTaskId" | "idleMeshyTaskId" | "sleepMeshyTaskId">>
 ): Promise<void> {
   const db = await getDb();
   const map: Record<string, string> = {
@@ -120,6 +122,7 @@ export async function updateCharacterFields(
     sleepAnimPath: "sleep_anim_path",
     generationStatus: "generation_status",
     rigTaskId: "rig_task_id",
+    refineMeshyTaskId: "refine_meshy_task_id",
     idleMeshyTaskId: "idle_meshy_task_id",
     sleepMeshyTaskId: "sleep_meshy_task_id",
   };

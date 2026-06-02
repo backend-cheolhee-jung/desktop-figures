@@ -86,6 +86,26 @@ pub async fn meshy_poll_text_model(api_key: String, task_id: String) -> Result<M
 }
 
 #[tauri::command]
+pub async fn meshy_create_refine(api_key: String, preview_task_id: String) -> Result<String, String> {
+    let res = client()
+        .post(format!("{BASE}/v2/text-to-3d"))
+        .bearer_auth(&api_key)
+        .json(&serde_json::json!({
+            "mode": "refine",
+            "preview_task_id": preview_task_id,
+        }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !res.status().is_success() {
+        return Err(format!("Meshy refine {}: {}", res.status(), res.text().await.unwrap_or_default()));
+    }
+    let data: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
+    data["result"].as_str().map(String::from).ok_or_else(|| "no result field".into())
+}
+
+#[tauri::command]
 pub async fn meshy_create_rig(api_key: String, model_glb_url: String) -> Result<String, String> {
     let res = client()
         .post(format!("{BASE}/v1/rigging"))

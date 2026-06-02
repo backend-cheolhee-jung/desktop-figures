@@ -13,6 +13,7 @@ import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import {
   pollTextModel,
+  createRefine,
   createRig,
   pollRig,
   createAnimation,
@@ -50,9 +51,25 @@ async function pollCharacters(): Promise<void> {
   let changed = false;
 
   for (const c of chars) {
-    // 단계 1: text-to-3d 폴링 → 완료 시 base GLB 다운로드 + rig 요청
-    if (c.meshyTaskId && !c.modelPath) {
+    // 단계 1: preview 폴링 → 완료 시 refine 요청
+    if (c.meshyTaskId && !c.refineMeshyTaskId) {
       const r = await pollTextModel(c.meshyTaskId);
+      if (r.status === "failed") {
+        await updateCharacterFields(c.id, { generationStatus: "failed" });
+        changed = true;
+        continue;
+      }
+      if (r.status === "succeeded") {
+        const refineMeshyTaskId = await createRefine(c.meshyTaskId);
+        await updateCharacterFields(c.id, { refineMeshyTaskId });
+        changed = true;
+      }
+      continue;
+    }
+
+    // 단계 2: refine 폴링 → 완료 시 textured GLB 다운로드 + rig 요청
+    if (c.refineMeshyTaskId && !c.modelPath) {
+      const r = await pollTextModel(c.refineMeshyTaskId);
       if (r.status === "failed") {
         await updateCharacterFields(c.id, { generationStatus: "failed" });
         changed = true;

@@ -14,6 +14,7 @@ pub fn run() {
             commands::quit_app,
             commands::hide_window,
             commands::meshy_create_text_model,
+            commands::meshy_create_refine,
             commands::meshy_poll_text_model,
             commands::meshy_create_rig,
             commands::meshy_poll_rig,
