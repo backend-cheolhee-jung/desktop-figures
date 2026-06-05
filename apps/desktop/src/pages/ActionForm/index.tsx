@@ -118,17 +118,6 @@ export default function ActionFormPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 flex flex-col gap-4 pb-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500">행동 이름</label>
-          <input
-            value={actionName}
-            onChange={(e) => setActionName(e.target.value)}
-            placeholder="이름 생략 시 애니메이션 타입으로 자동 설정"
-            disabled={isEdit}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400"
-          />
-        </div>
-
         {!isEdit && (
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-gray-500">애니메이션 타입</label>
