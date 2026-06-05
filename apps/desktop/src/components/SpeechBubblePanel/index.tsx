@@ -82,7 +82,7 @@ export default function SpeechBubblePanel({ onClose }: Props) {
   }
 
   return (
-    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-white rounded-2xl shadow-xl p-3 z-50">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-64 bg-white rounded-2xl shadow-xl p-3 z-50 pointer-events-auto">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-semibold text-gray-700">말풍선 / 행동 설정</span>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
