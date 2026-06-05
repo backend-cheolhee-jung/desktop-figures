@@ -77,13 +77,12 @@ export default function MainPage() {
   return (
     <div
       className="relative flex flex-col items-center justify-end h-full pb-4 select-none"
-      onMouseDown={handleDragStart}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {/* 상단 버튼 — 호버시만 표시 */}
       {hovered && (
-        <div className="absolute top-2 right-2 flex gap-1.5">
+        <div className="absolute top-2 right-2 flex gap-1.5 pointer-events-auto">
           <button
             onClick={handlePinToggle}
             className={`text-base ${isAlwaysOnTop ? "text-blue-400" : "text-gray-400 hover:text-gray-600"}`}
@@ -104,8 +103,9 @@ export default function MainPage() {
       {/* 말풍선 (클릭 → 편집) */}
       {status === "idle" && showIdleSpeech && (
         <div
-          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-500 border border-gray-100 cursor-pointer hover:border-blue-200 transition-colors"
+          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-500 border border-gray-100 cursor-pointer hover:border-blue-200 transition-colors pointer-events-auto"
           onClick={() => setActivePanel("speech")}
+          onMouseDown={handleDragStart}
           onContextMenu={handleContextMenu}
         >
           {idleSpeech}
@@ -113,7 +113,7 @@ export default function MainPage() {
       )}
       {status === "active" && currentAction?.speechBubble && (
         <div
-          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-700 border border-gray-100 flex items-center gap-1"
+          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-700 border border-gray-100 flex items-center gap-1 pointer-events-auto"
           onContextMenu={handleContextMenu}
         >
           <span className="truncate max-w-[140px]">{currentAction.speechBubble}</span>
@@ -122,10 +122,10 @@ export default function MainPage() {
 
       {/* 캐릭터 (더블클릭 → 행동 관리) */}
       <div
-        className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing"
+        className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto"
+        onMouseDown={handleDragStart}
         onDoubleClick={() => setActivePanel("actions")}
         onContextMenu={handleContextMenu}
-        data-tauri-drag-region
       >
         {character ? (
           <CharacterViewer
@@ -149,12 +149,12 @@ export default function MainPage() {
 
       {/* 캐릭터 이름 */}
       {character && (
-        <p className="mt-1 text-xs text-gray-400">{character.name}</p>
+        <p className="mt-1 text-xs text-gray-400 pointer-events-auto">{character.name}</p>
       )}
 
       {/* 행동 중 — 타이머 + 종료 */}
       {status === "active" && currentAction && (
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex items-center gap-2 pointer-events-auto">
           <ActionTimer
             actionName={currentAction.name}
             endTime={useActionStore.getState().actionEndTime ?? 0}
