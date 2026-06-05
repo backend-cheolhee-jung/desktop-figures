@@ -109,7 +109,7 @@ export default function CharacterViewer({ character, currentAction, status }: Pr
         key={url}
         gl={{ alpha: true, antialias: true }}
         camera={{ position: [0, 0.5, 4], fov: 35 }}
-        style={{ background: "transparent", pointerEvents: "none", display: "block", border: "none", outline: "none" }}
+        style={{ background: "transparent", pointerEvents: "none", display: "block", border: "none", outline: "none", boxShadow: "none" }}
         onCreated={({ gl, scene }) => {
           gl.setClearColor(0x000000, 0);
           gl.setPixelRatio(window.devicePixelRatio);

@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { getCurrentWindow, PhysicalPosition } from "@tauri-apps/api/window";
+import { useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import { useAppStore } from "@/store/appStore";
@@ -28,25 +28,6 @@ export default function MainPage() {
 
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
-  const dragRef = useRef<{ startMouseX: number; startMouseY: number; startWinX: number; startWinY: number } | null>(null);
-
-  useEffect(() => {
-    async function onMouseMove(e: MouseEvent) {
-      if (!dragRef.current) return;
-      const dx = e.screenX - dragRef.current.startMouseX;
-      const dy = e.screenY - dragRef.current.startMouseY;
-      await getCurrentWindow().setPosition(
-        new PhysicalPosition(dragRef.current.startWinX + dx, dragRef.current.startWinY + dy)
-      );
-    }
-    function onMouseUp() { dragRef.current = null; }
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-  }, []);
 
   async function handleStopAction() {
     await disableAlwaysOnTop();
@@ -72,13 +53,7 @@ export default function MainPage() {
 
   async function handleDragStart(e: React.MouseEvent) {
     if (e.button !== 0 || e.detail >= 2) return;
-    const pos = await getCurrentWindow().outerPosition();
-    dragRef.current = {
-      startMouseX: e.screenX,
-      startMouseY: e.screenY,
-      startWinX: pos.x,
-      startWinY: pos.y,
-    };
+    await getCurrentWindow().startDragging();
   }
 
   async function handlePinToggle() {
@@ -121,7 +96,7 @@ export default function MainPage() {
 
       {/* 캐릭터 (더블클릭 → 일정 관리) */}
       <div
-        className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto"
+        className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto outline-none"
         onMouseDown={handleDragStart}
         onDoubleClick={() => setActivePanel("actions")}
         onContextMenu={handleContextMenu}
