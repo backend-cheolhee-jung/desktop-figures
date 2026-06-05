@@ -113,7 +113,7 @@ export default function ActionFormPage() {
           ←
         </button>
         <h2 className="text-sm font-bold text-gray-700">
-          {isEdit ? "행동 수정" : "행동 추가"}
+          {isEdit ? "일정 수정" : "일정 등록"}
         </h2>
       </div>
 

@@ -29,7 +29,7 @@ export default function ActionPanelPage() {
         <button
           onClick={() => openActionForm()}
           className="w-6 h-6 rounded-full bg-blue-500 text-white text-lg flex items-center justify-center hover:bg-blue-600"
-          title="행동 추가"
+          title="일정 등록"
         >
           +
         </button>
