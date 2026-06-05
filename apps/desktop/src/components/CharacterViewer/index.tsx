@@ -107,9 +107,10 @@ export default function CharacterViewer({ character, currentAction, status }: Pr
     <ErrorBoundary fallback={<Fallback />}>
       <Canvas
         key={url}
-        gl={{ alpha: true }}
+        gl={{ alpha: true, antialias: true }}
         camera={{ position: [0, 0, 4], fov: 40 }}
         style={{ background: "transparent", pointerEvents: "none" }}
+        onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
       >
         <ambientLight intensity={1.2} />
         <directionalLight position={[2, 4, 3]} intensity={2} />
