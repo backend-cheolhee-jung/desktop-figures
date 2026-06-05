@@ -28,7 +28,6 @@ export default function MainPage() {
 
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
-  const [hovered, setHovered] = useState(false);
 
   async function handleStopAction() {
     await disableAlwaysOnTop();
@@ -75,31 +74,7 @@ export default function MainPage() {
   })();
 
   return (
-    <div
-      className="relative flex flex-col items-center justify-end h-full pb-4 select-none"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* 상단 버튼 — 호버시만 표시 */}
-      {hovered && (
-        <div className="absolute top-2 right-2 flex gap-1.5 pointer-events-auto">
-          <button
-            onClick={handlePinToggle}
-            className={`text-base ${isAlwaysOnTop ? "text-blue-400" : "text-gray-400 hover:text-gray-600"}`}
-            title={isAlwaysOnTop ? "최상위 고정 해제" : "최상위 고정"}
-          >
-            📌
-          </button>
-          <button
-            onClick={hideWindow}
-            className="text-gray-400 hover:text-red-400 text-base font-medium"
-            title="숨기기"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
+    <div className="relative flex flex-col items-center justify-end h-full pb-4 select-none">
       {/* 말풍선 (클릭 → 편집) */}
       {status === "idle" && showIdleSpeech && (
         <div
@@ -179,6 +154,9 @@ export default function MainPage() {
           onManageActions={() => setActivePanel("actions")}
           onSetSpeechBubble={() => setActivePanel("speech")}
           onDeleteCharacter={handleDeleteCharacter}
+          onHideWindow={hideWindow}
+          onPinToggle={handlePinToggle}
+          isPinned={isAlwaysOnTop}
         />
       )}
     </div>
