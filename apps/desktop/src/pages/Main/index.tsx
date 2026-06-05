@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import { useAppStore } from "@/store/appStore";
@@ -51,6 +52,12 @@ export default function MainPage() {
     setPage("setup");
   }
 
+  async function handleDragStart(e: React.MouseEvent) {
+    if (e.button !== 0) return;
+    if (e.detail >= 2) return; // 더블클릭은 드래그 안 함
+    await getCurrentWindow().startDragging();
+  }
+
   async function handlePinToggle() {
     if (isAlwaysOnTop) {
       await disableAlwaysOnTop();
@@ -70,7 +77,7 @@ export default function MainPage() {
   return (
     <div
       className="relative flex flex-col items-center justify-end h-full pb-4 select-none"
-      data-tauri-drag-region
+      onMouseDown={handleDragStart}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -108,7 +115,6 @@ export default function MainPage() {
         <div
           className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-700 border border-gray-100 flex items-center gap-1"
           onContextMenu={handleContextMenu}
-          data-tauri-drag-region
         >
           <span className="truncate max-w-[140px]">{currentAction.speechBubble}</span>
         </div>
@@ -143,7 +149,7 @@ export default function MainPage() {
 
       {/* 캐릭터 이름 */}
       {character && (
-        <p className="mt-1 text-xs text-gray-400" data-tauri-drag-region>{character.name}</p>
+        <p className="mt-1 text-xs text-gray-400">{character.name}</p>
       )}
 
       {/* 행동 중 — 타이머 + 종료 */}
