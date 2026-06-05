@@ -25,7 +25,7 @@ export default function ActionPanelPage() {
         <button onClick={() => setPage("main")} className="text-gray-400 hover:text-gray-600">
           ←
         </button>
-        <h2 className="text-sm font-bold text-gray-700">행동 관리</h2>
+        <h2 className="text-sm font-bold text-gray-700">일정 관리</h2>
         <button
           onClick={() => openActionForm()}
           className="w-6 h-6 rounded-full bg-blue-500 text-white text-lg flex items-center justify-center hover:bg-blue-600"

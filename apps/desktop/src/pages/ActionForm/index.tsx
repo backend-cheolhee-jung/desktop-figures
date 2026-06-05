@@ -53,7 +53,7 @@ export default function ActionFormPage() {
   }
 
   async function handleCreate() {
-    if (!actionName.trim() || !character) return;
+    if (!character) return;
     if (!character.rigTaskId) {
       setError("캐릭터 리깅이 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요.");
       return;
@@ -66,7 +66,7 @@ export default function ActionFormPage() {
       const { scheduledAt, duration } = buildSchedule();
       const action = await saveAction({
         characterId: character.id,
-        name: actionName.trim(),
+        name: actionName.trim() || preset.label,
         generationStatus: "pending",
         meshyTaskId: taskId,
         speechBubble: speechBubble || undefined,
@@ -83,7 +83,7 @@ export default function ActionFormPage() {
   }
 
   async function handleSaveEdit() {
-    if (!actionName.trim() || !editingActionId) return;
+    if (!editingActionId) return;
     setError(null);
     const { scheduledAt, duration } = buildSchedule();
     try {
@@ -123,7 +123,7 @@ export default function ActionFormPage() {
           <input
             value={actionName}
             onChange={(e) => setActionName(e.target.value)}
-            placeholder="코딩, 공부, 운동, 식사..."
+            placeholder="이름 생략 시 애니메이션 타입으로 자동 설정"
             disabled={isEdit}
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400"
           />
@@ -185,7 +185,7 @@ export default function ActionFormPage() {
       <div className="px-4 pb-4">
         <button
           onClick={() => isEdit ? handleSaveEdit() : runGated(handleCreate)}
-          disabled={!actionName.trim() || isGenerating}
+          disabled={isGenerating}
           className="w-full bg-blue-500 text-white rounded-2xl py-2.5 text-sm font-semibold hover:bg-blue-600 transition-colors disabled:opacity-40"
         >
           {isEdit ? "저장" : "생성"}

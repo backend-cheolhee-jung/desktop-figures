@@ -57,12 +57,12 @@ export default function App() {
     }
   }, [currentPage]);
 
-  if (currentPage === "loading") return null;
+  if (currentPage === "loading") return <div className="w-full h-screen" />;
 
   const isWidget = currentPage === "main";
 
   return (
-    <div className={`w-full h-screen ${isWidget ? "bg-transparent" : "bg-white rounded-2xl shadow-xl overflow-hidden"}`}>
+    <div className={`w-full h-screen ${isWidget ? "bg-transparent pointer-events-none" : "bg-white rounded-2xl shadow-xl overflow-hidden"}`}>
       {currentPage === "setup" && <SetupPage />}
       {currentPage === "main" && <MainPage />}
       {currentPage === "settings" && <SettingsPage />}

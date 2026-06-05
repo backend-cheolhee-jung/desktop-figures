@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import { useAppStore } from "@/store/appStore";
@@ -19,8 +20,8 @@ export default function MainPage() {
   const character = useCharacterStore((s) => s.character);
   const setCharacter = useCharacterStore((s) => s.setCharacter);
   const { status, currentAction, stopAction, setActions } = useActionStore();
-  const { setPage } = useAppStore();
-  const { disableAlwaysOnTop, hideWindow } = useWindowControl();
+  const { setPage, isAlwaysOnTop } = useAppStore();
+  const { disableAlwaysOnTop, enableAlwaysOnTop, hideWindow } = useWindowControl();
 
   useScheduler();
   useJobPoller();
@@ -50,49 +51,56 @@ export default function MainPage() {
     setPage("setup");
   }
 
+  async function handleDragStart(e: React.MouseEvent) {
+    if (e.button !== 0) return;
+    if (e.detail >= 2) return; // 더블클릭은 드래그 안 함
+    await getCurrentWindow().startDragging();
+  }
+
+  async function handlePinToggle() {
+    if (isAlwaysOnTop) {
+      await disableAlwaysOnTop();
+    } else {
+      await enableAlwaysOnTop();
+    }
+  }
+
   const idleSpeech = character?.idleSpeechBubble ?? "zzz...";
+  const showIdleSpeech = (() => {
+    if (!character?.idleSpeechScheduledAt || !character?.idleSpeechDurationMinutes) return true;
+    const now = Date.now();
+    const end = character.idleSpeechScheduledAt + character.idleSpeechDurationMinutes * 60_000;
+    return now >= character.idleSpeechScheduledAt && now < end;
+  })();
 
   return (
-    <div
-      className="relative flex flex-col items-center justify-end h-full pb-4 select-none"
-      data-tauri-drag-region
-    >
-      {/* 상단 버튼 */}
-      <div className="absolute top-2 right-2 flex gap-1.5">
-        <button
-          onClick={hideWindow}
-          className="text-gray-400 hover:text-red-400 text-base font-medium"
-          title="숨기기"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* 말풍선 */}
-      {status === "idle" && (
+    <div className="relative flex flex-col items-center justify-end h-full pb-4 select-none">
+      {/* 말풍선 (클릭 → 편집) */}
+      {status === "idle" && showIdleSpeech && (
         <div
-          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-500 border border-gray-100 cursor-grab active:cursor-grabbing"
+          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-500 border border-gray-100 cursor-pointer hover:border-blue-200 transition-colors pointer-events-auto"
+          onClick={() => setActivePanel("speech")}
+          onMouseDown={handleDragStart}
           onContextMenu={handleContextMenu}
-          data-tauri-drag-region
         >
           {idleSpeech}
         </div>
       )}
       {status === "active" && currentAction?.speechBubble && (
         <div
-          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-700 border border-gray-100 flex items-center gap-1 cursor-grab active:cursor-grabbing"
+          className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-700 border border-gray-100 flex items-center gap-1 pointer-events-auto"
           onContextMenu={handleContextMenu}
-          data-tauri-drag-region
         >
           <span className="truncate max-w-[140px]">{currentAction.speechBubble}</span>
         </div>
       )}
 
-      {/* 캐릭터 3D 뷰어 + 오버레이 패널 */}
+      {/* 캐릭터 (더블클릭 → 일정 관리) */}
       <div
-        className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing"
+        className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto"
+        onMouseDown={handleDragStart}
+        onDoubleClick={() => setActivePanel("actions")}
         onContextMenu={handleContextMenu}
-        data-tauri-drag-region
       >
         {character ? (
           <CharacterViewer
@@ -116,12 +124,12 @@ export default function MainPage() {
 
       {/* 캐릭터 이름 */}
       {character && (
-        <p className="mt-1 text-xs text-gray-400">{character.name}</p>
+        <p className="mt-1 text-xs text-gray-400 pointer-events-auto">{character.name}</p>
       )}
 
-      {/* 행동 중 — 타이머 + 종료 버튼 */}
+      {/* 행동 중 — 타이머 + 종료 */}
       {status === "active" && currentAction && (
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex items-center gap-2 pointer-events-auto">
           <ActionTimer
             actionName={currentAction.name}
             endTime={useActionStore.getState().actionEndTime ?? 0}
@@ -146,6 +154,9 @@ export default function MainPage() {
           onManageActions={() => setActivePanel("actions")}
           onSetSpeechBubble={() => setActivePanel("speech")}
           onDeleteCharacter={handleDeleteCharacter}
+          onHideWindow={hideWindow}
+          onPinToggle={handlePinToggle}
+          isPinned={isAlwaysOnTop}
         />
       )}
     </div>

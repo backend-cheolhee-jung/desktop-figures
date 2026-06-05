@@ -7,9 +7,12 @@ interface Props {
   onManageActions: () => void;
   onSetSpeechBubble: () => void;
   onDeleteCharacter: () => void;
+  onHideWindow: () => void;
+  onPinToggle: () => void;
+  isPinned: boolean;
 }
 
-export default function ContextMenu({ x, y, onClose, onManageActions, onSetSpeechBubble, onDeleteCharacter }: Props) {
+export default function ContextMenu({ x, y, onClose, onManageActions, onSetSpeechBubble, onDeleteCharacter, onHideWindow, onPinToggle, isPinned }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,13 +34,26 @@ export default function ContextMenu({ x, y, onClose, onManageActions, onSetSpeec
     <div
       ref={ref}
       style={{ position: "fixed", left: x, top: y, zIndex: 1000 }}
-      className="bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[140px] text-sm"
+      className="bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[150px] text-sm pointer-events-auto"
     >
+      <button
+        onClick={() => { onPinToggle(); onClose(); }}
+        className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
+      >
+        {isPinned ? "📌 고정 해제" : "📌 최상위 고정"}
+      </button>
+      <button
+        onClick={() => { onHideWindow(); onClose(); }}
+        className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
+      >
+        👁 숨기기
+      </button>
+      <div className="border-t border-gray-100 my-1" />
       <button
         onClick={() => { onManageActions(); onClose(); }}
         className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
       >
-        📋 행동 관리
+        📋 일정 관리
       </button>
       <button
         onClick={() => { onSetSpeechBubble(); onClose(); }}

@@ -18,6 +18,8 @@ export interface Character {
   idleMeshyTaskId?: string;
   sleepMeshyTaskId?: string;
   idleSpeechBubble?: string;
+  idleSpeechScheduledAt?: number;
+  idleSpeechDurationMinutes?: number;
   serverId?: string;
   createdAt: number;
   updatedAt: number;

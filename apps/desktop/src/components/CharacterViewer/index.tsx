@@ -107,14 +107,19 @@ export default function CharacterViewer({ character, currentAction, status }: Pr
     <ErrorBoundary fallback={<Fallback />}>
       <Canvas
         key={url}
-        gl={{ alpha: true }}
-        camera={{ position: [0, 0, 4], fov: 40 }}
-        style={{ background: "transparent" }}
+        gl={{ alpha: true, antialias: true }}
+        camera={{ position: [0, 0.5, 4], fov: 35 }}
+        style={{ background: "transparent", pointerEvents: "none", display: "block", border: "none", outline: "none" }}
+        onCreated={({ gl, scene }) => {
+          gl.setClearColor(0x000000, 0);
+          gl.setPixelRatio(window.devicePixelRatio);
+          scene.background = null;
+        }}
       >
         <ambientLight intensity={1.2} />
         <directionalLight position={[2, 4, 3]} intensity={2} />
         <directionalLight position={[-2, 2, -1]} intensity={0.8} />
-        <Environment preset="sunset" />
+        <Environment preset="sunset" background={false} />
         <Suspense fallback={null}>
           <Model url={url} />
         </Suspense>
