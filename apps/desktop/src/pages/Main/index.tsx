@@ -95,7 +95,7 @@ export default function MainPage() {
         </div>
       )}
 
-      {/* 캐릭터 (더블클릭 → 행동 관리) */}
+      {/* 캐릭터 (더블클릭 → 일정 관리) */}
       <div
         className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto"
         onMouseDown={handleDragStart}

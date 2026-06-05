@@ -53,7 +53,7 @@ export default function ContextMenu({ x, y, onClose, onManageActions, onSetSpeec
         onClick={() => { onManageActions(); onClose(); }}
         className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
       >
-        📋 행동 관리
+        📋 일정 관리
       </button>
       <button
         onClick={() => { onSetSpeechBubble(); onClose(); }}

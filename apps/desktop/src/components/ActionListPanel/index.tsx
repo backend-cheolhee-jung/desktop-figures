@@ -23,7 +23,7 @@ export default function ActionListPanel({ onClose }: Props) {
   return (
     <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="text-sm font-semibold text-gray-700">행동 관리</span>
+        <span className="text-sm font-semibold text-gray-700">일정 관리</span>
         <div className="flex gap-2">
           <button
             onClick={handleAdd}
