@@ -16,6 +16,8 @@ interface CharacterRow {
   idle_meshy_task_id: string | null;
   sleep_meshy_task_id: string | null;
   idle_speech_bubble: string | null;
+  idle_speech_scheduled_at: number | null;
+  idle_speech_duration_minutes: number | null;
   server_id: string | null;
   created_at: number;
   updated_at: number;
@@ -38,6 +40,8 @@ function toCharacter(row: CharacterRow): Character {
     idleMeshyTaskId: row.idle_meshy_task_id ?? undefined,
     sleepMeshyTaskId: row.sleep_meshy_task_id ?? undefined,
     idleSpeechBubble: row.idle_speech_bubble ?? undefined,
+    idleSpeechScheduledAt: row.idle_speech_scheduled_at ?? undefined,
+    idleSpeechDurationMinutes: row.idle_speech_duration_minutes ?? undefined,
     serverId: row.server_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -145,10 +149,15 @@ export async function findPendingCharacters(): Promise<Character[]> {
   return rows.map(toCharacter);
 }
 
-export async function updateIdleSpeechBubble(id: string, text: string): Promise<void> {
+export async function updateIdleSpeechBubble(
+  id: string,
+  text: string,
+  scheduledAt?: number,
+  durationMinutes?: number
+): Promise<void> {
   const db = await getDb();
   await db.execute(
-    "UPDATE characters SET idle_speech_bubble = ?, updated_at = ? WHERE id = ?",
-    [text, Date.now(), id]
+    "UPDATE characters SET idle_speech_bubble = ?, idle_speech_scheduled_at = ?, idle_speech_duration_minutes = ?, updated_at = ? WHERE id = ?",
+    [text, scheduledAt ?? null, durationMinutes ?? null, Date.now(), id]
   );
 }

@@ -137,6 +137,8 @@ async function migrateColumns(db: Database): Promise<void> {
   await ensure("actions", "generation_status", "TEXT NOT NULL DEFAULT 'pending'");
   await ensure("actions", "meshy_task_id", "TEXT");
   await ensure("characters", "idle_speech_bubble", "TEXT");
+  await ensure("characters", "idle_speech_scheduled_at", "INTEGER");
+  await ensure("characters", "idle_speech_duration_minutes", "INTEGER");
 
   // 기존 2D 레코드(model_path NULL이지만 status가 기본 pending) → failed 처리
   await db.execute(

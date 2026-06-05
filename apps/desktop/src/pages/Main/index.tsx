@@ -60,7 +60,12 @@ export default function MainPage() {
   }
 
   const idleSpeech = character?.idleSpeechBubble ?? "zzz...";
-  const showIdleSpeech = true; // 스케줄 로직은 Task 3에서 추가
+  const showIdleSpeech = (() => {
+    if (!character?.idleSpeechScheduledAt || !character?.idleSpeechDurationMinutes) return true;
+    const now = Date.now();
+    const end = character.idleSpeechScheduledAt + character.idleSpeechDurationMinutes * 60_000;
+    return now >= character.idleSpeechScheduledAt && now < end;
+  })();
 
   return (
     <div
