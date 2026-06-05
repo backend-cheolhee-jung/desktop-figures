@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useState, useRef, useEffect } from "react";
+import { getCurrentWindow, PhysicalPosition } from "@tauri-apps/api/window";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import { useAppStore } from "@/store/appStore";
@@ -29,6 +29,38 @@ export default function MainPage() {
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
 
+  // 드래그: 창 위치 캐싱 + delta 누적 방식
+  const winPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragMouse = useRef<{ x: number; y: number } | null>(null);
+  const moving = useRef(false);
+
+  useEffect(() => {
+    getCurrentWindow().outerPosition().then(p => { winPos.current = { x: p.x, y: p.y }; });
+
+    async function onMove(e: MouseEvent) {
+      if (!dragMouse.current || moving.current) return;
+      moving.current = true;
+      const dx = e.screenX - dragMouse.current.x;
+      const dy = e.screenY - dragMouse.current.y;
+      winPos.current = { x: winPos.current.x + dx, y: winPos.current.y + dy };
+      dragMouse.current = { x: e.screenX, y: e.screenY };
+      await getCurrentWindow().setPosition(new PhysicalPosition(winPos.current.x, winPos.current.y));
+      moving.current = false;
+    }
+    function onUp() { dragMouse.current = null; }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
+
+  function handleDragStart(e: React.MouseEvent) {
+    if (e.button !== 0 || e.detail >= 2) return;
+    dragMouse.current = { x: e.screenX, y: e.screenY };
+  }
+
   async function handleStopAction() {
     await disableAlwaysOnTop();
     stopAction();
@@ -51,10 +83,6 @@ export default function MainPage() {
     setPage("setup");
   }
 
-  async function handleDragStart(e: React.MouseEvent) {
-    if (e.button !== 0 || e.detail >= 2) return;
-    await getCurrentWindow().startDragging();
-  }
 
   async function handlePinToggle() {
     if (isAlwaysOnTop) {
