@@ -109,7 +109,7 @@ export default function CharacterViewer({ character, currentAction, status }: Pr
         key={url}
         gl={{ alpha: true }}
         camera={{ position: [0, 0, 4], fov: 40 }}
-        style={{ background: "transparent" }}
+        style={{ background: "transparent", pointerEvents: "none" }}
       >
         <ambientLight intensity={1.2} />
         <directionalLight position={[2, 4, 3]} intensity={2} />

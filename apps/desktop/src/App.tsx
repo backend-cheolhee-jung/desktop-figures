@@ -57,7 +57,7 @@ export default function App() {
     }
   }, [currentPage]);
 
-  if (currentPage === "loading") return null;
+  if (currentPage === "loading") return <div className="w-full h-screen" />;
 
   const isWidget = currentPage === "main";
 
