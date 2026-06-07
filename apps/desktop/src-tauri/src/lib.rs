@@ -13,6 +13,7 @@ pub fn run() {
             commands::save_window_position,
             commands::quit_app,
             commands::hide_window,
+            commands::show_context_menu,
             commands::meshy_create_text_model,
             commands::meshy_create_refine,
             commands::meshy_poll_text_model,
@@ -24,6 +25,12 @@ pub fn run() {
         ])
         .setup(|_app| {
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            use tauri::{Emitter, Manager};
+            if let Some(window) = app.get_webview_window("main") {
+                window.emit("context-menu-action", event.id().0.as_str()).ok();
+            }
         })
         // 창 닫기(X 클릭) → 숨기기만, 프로세스 유지
         .on_window_event(|window, event| {

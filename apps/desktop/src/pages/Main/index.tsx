@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from "react";
-import { getCurrentWindow, PhysicalPosition } from "@tauri-apps/api/window";
+import { useState, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
 import { useAppStore } from "@/store/appStore";
@@ -10,9 +12,9 @@ import { deleteCharacter } from "@/repository/characterRepository";
 import { deleteActionsByCharacterId } from "@/repository/actionRepository";
 import CharacterViewer from "@/components/CharacterViewer";
 import ActionTimer from "@/components/ActionTimer";
-import ContextMenu from "@/components/ContextMenu";
 import ActionListPanel from "@/components/ActionListPanel";
 import SpeechBubblePanel from "@/components/SpeechBubblePanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type ActivePanel = "actions" | "speech" | null;
 
@@ -26,40 +28,19 @@ export default function MainPage() {
   useScheduler();
   useJobPoller();
 
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
-
-  // 드래그: 창 위치 캐싱 + delta 누적 방식
-  const winPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const dragMouse = useRef<{ x: number; y: number } | null>(null);
-  const moving = useRef(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const activePanelRef = useRef<ActivePanel>(null);
+  activePanelRef.current = activePanel;
 
   useEffect(() => {
-    getCurrentWindow().outerPosition().then(p => { winPos.current = { x: p.x, y: p.y }; });
-
-    async function onMove(e: MouseEvent) {
-      if (!dragMouse.current || moving.current) return;
-      moving.current = true;
-      const dx = e.screenX - dragMouse.current.x;
-      const dy = e.screenY - dragMouse.current.y;
-      winPos.current = { x: winPos.current.x + dx, y: winPos.current.y + dy };
-      dragMouse.current = { x: e.screenX, y: e.screenY };
-      await getCurrentWindow().setPosition(new PhysicalPosition(winPos.current.x, winPos.current.y));
-      moving.current = false;
+    const win = getCurrentWindow();
+    if (activePanel) {
+      win.setSize(new LogicalSize(300, 360));
+    } else {
+      win.setSize(new LogicalSize(160, 220));
     }
-    function onUp() { dragMouse.current = null; }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, []);
-
-  function handleDragStart(e: React.MouseEvent) {
-    if (e.button !== 0 || e.detail >= 2) return;
-    dragMouse.current = { x: e.screenX, y: e.screenY };
-  }
+  }, [activePanel]);
 
   async function handleStopAction() {
     await disableAlwaysOnTop();
@@ -69,13 +50,11 @@ export default function MainPage() {
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     setActivePanel(null);
-    setCtxMenu({ x: e.clientX, y: e.clientY });
+    invoke("show_context_menu", { isPinned: isAlwaysOnTop });
   }
 
-  async function handleDeleteCharacter() {
+  async function confirmDeleteCharacter() {
     if (!character) return;
-    const confirmed = window.confirm(`"${character.name}" 캐릭터를 삭제할까요? 이 작업은 되돌릴 수 없어요.`);
-    if (!confirmed) return;
     await deleteActionsByCharacterId(character.id);
     await deleteCharacter(character.id);
     setCharacter(null);
@@ -83,6 +62,10 @@ export default function MainPage() {
     setPage("setup");
   }
 
+  function handleDeleteCharacter() {
+    if (!character) return;
+    setShowDeleteConfirm(true);
+  }
 
   async function handlePinToggle() {
     if (isAlwaysOnTop) {
@@ -91,6 +74,24 @@ export default function MainPage() {
       await enableAlwaysOnTop();
     }
   }
+
+  const handleDeleteCharacterRef = useRef(handleDeleteCharacter);
+  const handlePinToggleRef = useRef(handlePinToggle);
+  const hideWindowRef = useRef(hideWindow);
+  const setActivePanelRef = useRef(setActivePanel);
+  handleDeleteCharacterRef.current = handleDeleteCharacter;
+  handlePinToggleRef.current = handlePinToggle;
+  hideWindowRef.current = hideWindow;
+  setActivePanelRef.current = setActivePanel;
+
+  useEffect(() => {
+    const unlisten = listen<string>("context-menu-action", (event) => {
+      const action = event.payload;
+      if (action === "pin") handlePinToggleRef.current();
+      else if (action === "delete") handleDeleteCharacterRef.current();
+    });
+    return () => { unlisten.then((f) => f()); };
+  }, []);
 
   const idleSpeech = character?.idleSpeechBubble ?? "zzz...";
   const showIdleSpeech = (() => {
@@ -106,8 +107,8 @@ export default function MainPage() {
       {status === "idle" && showIdleSpeech && (
         <div
           className="mb-2 bg-white rounded-2xl px-3 py-1 text-sm shadow-sm text-gray-500 border border-gray-100 cursor-pointer hover:border-blue-200 transition-colors pointer-events-auto"
+          data-tauri-drag-region
           onClick={() => setActivePanel("speech")}
-          onMouseDown={handleDragStart}
           onContextMenu={handleContextMenu}
         >
           {idleSpeech}
@@ -125,8 +126,7 @@ export default function MainPage() {
       {/* 캐릭터 (더블클릭 → 일정 관리) */}
       <div
         className="relative w-32 h-32 flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto outline-none"
-        onMouseDown={handleDragStart}
-        onDoubleClick={() => setActivePanel("actions")}
+        data-tauri-drag-region
         onContextMenu={handleContextMenu}
       >
         {character ? (
@@ -151,7 +151,7 @@ export default function MainPage() {
 
       {/* 캐릭터 이름 */}
       {character && (
-        <p className="mt-1 text-xs text-gray-400 pointer-events-auto">{character.name}</p>
+        <p className="mt-1 text-xs text-gray-400 pointer-events-auto" data-tauri-drag-region>{character.name}</p>
       )}
 
       {/* 행동 중 — 타이머 + 종료 */}
@@ -172,18 +172,11 @@ export default function MainPage() {
         </div>
       )}
 
-      {/* 컨텍스트 메뉴 */}
-      {ctxMenu && (
-        <ContextMenu
-          x={ctxMenu.x}
-          y={ctxMenu.y}
-          onClose={() => setCtxMenu(null)}
-          onManageActions={() => setActivePanel("actions")}
-          onSetSpeechBubble={() => setActivePanel("speech")}
-          onDeleteCharacter={handleDeleteCharacter}
-          onHideWindow={hideWindow}
-          onPinToggle={handlePinToggle}
-          isPinned={isAlwaysOnTop}
+      {showDeleteConfirm && character && (
+        <ConfirmDialog
+          message={`"${character.name}" 캐릭터를 삭제할까요?\n이 작업은 되돌릴 수 없어요.`}
+          onConfirm={() => { setShowDeleteConfirm(false); confirmDeleteCharacter(); }}
+          onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
     </div>

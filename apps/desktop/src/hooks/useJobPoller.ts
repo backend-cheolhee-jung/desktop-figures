@@ -8,6 +8,7 @@ import {
   findPendingActions,
   updateActionFields,
   findActionsByCharacterId,
+  saveAction,
 } from "@/repository/actionRepository";
 import { useCharacterStore } from "@/store/characterStore";
 import { useActionStore } from "@/store/actionStore";
@@ -18,6 +19,7 @@ import {
   pollRig,
   createAnimation,
   pollAnimation,
+  ANIMATION_PRESETS,
 } from "@/lib/meshy";
 import { downloadGlb } from "@/lib/glbUtils";
 
@@ -32,6 +34,7 @@ export function useJobPoller() {
       busy.current = true;
       try {
         await pollCharacters();
+        await autoCreateMissingActions();
         await pollActions();
       } catch (e) {
         console.error("jobPoller error:", e);
@@ -106,6 +109,24 @@ async function pollCharacters(): Promise<void> {
         fields.sleepMeshyTaskId = sleepTaskId;
 
         await updateCharacterFields(c.id, fields);
+
+        // 리그 완료 → 모든 프리셋 행동 자동 생성 (중복 제외)
+        const existingActions = await findActionsByCharacterId(c.id);
+        const existingNames = new Set(existingActions.map((a) => a.name));
+        await Promise.allSettled(
+          ANIMATION_PRESETS
+            .filter((preset) => !existingNames.has(preset.label))
+            .map(async (preset) => {
+              const taskId = await createAnimation(c.rigTaskId!, preset.actionId);
+              await saveAction({
+                characterId: c.id,
+                name: preset.label,
+                generationStatus: "pending",
+                meshyTaskId: taskId,
+              });
+            })
+        );
+
         changed = true;
       }
       continue;
@@ -134,6 +155,35 @@ async function pollCharacters(): Promise<void> {
   if (changed) {
     const fresh = await findFirstCharacter();
     useCharacterStore.getState().setCharacter(fresh);
+  }
+}
+
+async function autoCreateMissingActions(): Promise<void> {
+  const character = useCharacterStore.getState().character;
+  if (!character?.rigTaskId || character.generationStatus !== "ready") return;
+
+  const existing = await findActionsByCharacterId(character.id);
+  if (existing.length > 0) return; // 이미 행동이 있으면 스킵
+
+  const results = await Promise.allSettled(
+    ANIMATION_PRESETS.map(async (preset) => {
+      const taskId = await createAnimation(character.rigTaskId!, preset.actionId);
+      const action = await saveAction({
+        characterId: character.id,
+        name: preset.label,
+        generationStatus: "pending",
+        meshyTaskId: taskId,
+      });
+      return action;
+    })
+  );
+
+  const created = results
+    .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof saveAction>>> => r.status === "fulfilled")
+    .map((r) => r.value);
+
+  if (created.length > 0) {
+    useActionStore.getState().setActions(created);
   }
 }
 

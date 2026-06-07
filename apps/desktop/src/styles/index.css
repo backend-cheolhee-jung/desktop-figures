@@ -17,6 +17,7 @@ canvas {
   display: block;
 }
 
+html,
 body {
   background: transparent;
   overflow: hidden;

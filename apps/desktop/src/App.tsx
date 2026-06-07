@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { useAppStore, Page } from "@/store/appStore";
 import { useCharacterStore } from "@/store/characterStore";
@@ -31,6 +31,7 @@ export default function App() {
   const setPage = useAppStore((s) => s.setPage);
   const setCharacter = useCharacterStore((s) => s.setCharacter);
   const setActions = useActionStore((s) => s.setActions);
+  const initialLoadDone = useRef(false);
   useWindowControl();
 
   useEffect(() => {
@@ -52,9 +53,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (currentPage !== "loading") {
-      resizeWindow(currentPage);
-    }
+    if (currentPage === "loading") return;
+    const isFirstLoad = !initialLoadDone.current;
+    initialLoadDone.current = true;
+    (async () => {
+      await resizeWindow(currentPage);
+      if (isFirstLoad && currentPage === "main") {
+        await getCurrentWindow().center();
+      }
+    })();
   }, [currentPage]);
 
   if (currentPage === "loading") return <div className="w-full h-screen" />;

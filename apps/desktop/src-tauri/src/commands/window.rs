@@ -1,4 +1,31 @@
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::{AppHandle, Manager, Runtime, WebviewWindow};
+
+/// 네이티브 OS 컨텍스트 메뉴 표시
+#[tauri::command]
+pub async fn show_context_menu<R: Runtime>(
+    window: WebviewWindow<R>,
+    is_pinned: bool,
+) -> Result<(), String> {
+    let app = window.app_handle();
+
+    let pin = MenuItem::with_id(
+        app,
+        "pin",
+        if is_pinned { "고정 해제" } else { "최상위 고정" },
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let delete = MenuItem::with_id(app, "delete", "캐릭터 삭제", true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let sep = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+
+    let menu = Menu::with_items(app, &[&pin, &sep, &delete])
+        .map_err(|e| e.to_string())?;
+
+    window.popup_menu(&menu).map_err(|e| e.to_string())
+}
 
 /// 앱 완전 종료
 #[tauri::command]
