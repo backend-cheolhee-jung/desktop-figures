@@ -43,7 +43,7 @@ export async function pollAnimation(animTaskId: string): Promise<MeshyResult> {
 }
 
 export const ANIMATION_PRESETS = [
-  { id: "coding",     label: "코딩/공부",  actionId: 32  },
+  { id: "coding",     label: "업무중",     actionId: 32  },
   { id: "walking",    label: "걷기",       actionId: 30  },
   { id: "running",    label: "달리기",     actionId: 14  },
   { id: "dancing",    label: "춤추기",     actionId: 22  },

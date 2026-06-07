@@ -50,12 +50,13 @@ export async function saveAction(
 
   await db.execute(
     `INSERT INTO actions
-       (id, character_id, name, animation_path, generation_status, meshy_task_id,
+       (id, character_id, name, action_image_path, animation_path, generation_status, meshy_task_id,
         speech_bubble, voice_file_path, voice_loop_start, voice_loop_end,
         scheduled_at, duration_minutes, server_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      id, data.characterId, data.name, data.animationPath ?? null,
+      id, data.characterId, data.name, "",
+      data.animationPath ?? null,
       data.generationStatus, data.meshyTaskId ?? null,
       data.speechBubble ?? null, data.voiceFilePath ?? null,
       data.voiceLoopStart ?? null, data.voiceLoopEnd ?? null,

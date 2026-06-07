@@ -163,11 +163,14 @@ async function autoCreateMissingActions(): Promise<void> {
   if (!character?.rigTaskId || character.generationStatus !== "ready") return;
 
   const existing = await findActionsByCharacterId(character.id);
-  if (existing.length > 0) return; // 이미 행동이 있으면 스킵
+  if (existing.length > 0) return;
+
+  console.log("[autoCreate] Starting action generation for", ANIMATION_PRESETS.length, "presets");
 
   const results = await Promise.allSettled(
     ANIMATION_PRESETS.map(async (preset) => {
       const taskId = await createAnimation(character.rigTaskId!, preset.actionId);
+      console.log("[autoCreate] Animation task created:", preset.label, taskId);
       const action = await saveAction({
         characterId: character.id,
         name: preset.label,
@@ -178,9 +181,17 @@ async function autoCreateMissingActions(): Promise<void> {
     })
   );
 
+  results.forEach((r, i) => {
+    if (r.status === "rejected") {
+      console.error("[autoCreate] Failed:", ANIMATION_PRESETS[i].label, r.reason);
+    }
+  });
+
   const created = results
     .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof saveAction>>> => r.status === "fulfilled")
     .map((r) => r.value);
+
+  console.log("[autoCreate] Created", created.length, "/", ANIMATION_PRESETS.length, "actions");
 
   if (created.length > 0) {
     useActionStore.getState().setActions(created);
